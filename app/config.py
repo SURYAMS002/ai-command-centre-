@@ -16,7 +16,12 @@ class Settings(BaseSettings):
     # OpenAI (For Phase 3 onwards)
     OPENAI_API_KEY: str = ""
 
+    # OpenWeatherMap API Integration
+    OPENWEATHER_API_KEY: str = ""
+    DEFAULT_FARM_LOCATION: str = "Bangalore"
+
     model_config = SettingsConfigDict(
+
         env_file=str(BASE_DIR / ".env"),
         env_file_encoding="utf-8",
         extra="ignore"

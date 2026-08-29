@@ -32,14 +32,20 @@ OPENAI_TOOLS = [
         "type": "function",
         "function": {
             "name": "get_weather",
-            "description": "Retrieves ambient farm weather data including temperature (°C), relative humidity (%), and rainfall probability (%).",
+            "description": "Retrieves ambient farm weather data including temperature (°C), relative humidity (%), and rainfall probability (%). Optionally accepts a location name.",
             "parameters": {
                 "type": "object",
-                "properties": {},
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": "Optional location/city name, e.g. 'Bangalore', 'London'."
+                    }
+                },
                 "required": []
             }
         }
     },
+
     {
         "type": "function",
         "function": {

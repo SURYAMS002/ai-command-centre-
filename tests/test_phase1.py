@@ -62,3 +62,4 @@ def test_farm_status_endpoint():
         assert data["farm"]["name"] == "Demo Farm"
         assert data["water_tank"]["current_level_pct"] == 72.0
 
+
