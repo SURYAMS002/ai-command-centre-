@@ -1,0 +1,32 @@
+{
+  "farm": {
+    "name": "Demo Farm",
+    "location": "Sector 4-A"
+  },
+  "water_tank": {
+    "capacity_litres": 5000,
+    "current_level_pct": 72.0,
+    "pump_status": "OFF"
+  },
+  "fields": [
+    {
+      "name": "Field A",
+      "crop": "Tomato",
+      "area_acres": 1.0,
+      "soil_moisture_pct": 24.0,
+      "irrigation_status": "OFF"
+    },
+    {
+      "name": "Field B",
+      "crop": "Rice",
+      "area_acres": 2.0,
+      "soil_moisture_pct": 48.0,
+      "irrigation_status": "OFF"
+    }
+  ],
+  "weather": {
+    "temperature_c": 31.0,
+    "humidity_pct": 68.0,
+    "rain_probability_pct": 15.0
+  }
+}
