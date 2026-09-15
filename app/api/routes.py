@@ -18,18 +18,14 @@ from app.tools import (
 
 router = APIRouter()
 
-from pathlib import Path
 from fastapi.responses import HTMLResponse
 from app.tools.agronomic_tools import update_field_agronomic_profile
-
-TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "templates" / "dashboard.html"
+from app.templates.dashboard_template import DASHBOARD_HTML
 
 @router.get("/", response_class=HTMLResponse)
 async def root():
-    if TEMPLATE_PATH.exists():
-        with open(TEMPLATE_PATH, "r", encoding="utf-8") as f:
-            return f.read()
-    return "<h1>AFOCC System Operational</h1><p>Open <a href='/docs'>/docs</a> for API specs.</p>"
+    return HTMLResponse(content=DASHBOARD_HTML)
+
 
 class AgronomicUpdateRequestModel(BaseModel):
     field_name: str

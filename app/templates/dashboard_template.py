@@ -1,0 +1,432 @@
+DASHBOARD_HTML = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AFOCC - AI Farm Operations Command Center</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #090d16;
+            --panel-bg: rgba(30, 41, 59, 0.7);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --accent-green: #10b981;
+            --accent-cyan: #06b6d4;
+            --accent-blue: #3b82f6;
+            --accent-warning: #f59e0b;
+            --accent-danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top right, #1e1b4b 0%, #090d16 50%, #050811 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .container { max-width: 1300px; margin: 0 auto; }
+        
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--panel-border);
+            margin-bottom: 28px;
+        }
+        .brand { display: flex; align-items: center; gap: 14px; }
+        .brand-icon {
+            width: 48px; height: 48px; background: linear-gradient(135deg, var(--accent-green), var(--accent-cyan));
+            border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 15px rgba(16,185,129,0.3);
+        }
+        .brand-title h1 { font-size: 22px; font-weight: 700; background: linear-gradient(to right, #fff, #93c5fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .brand-title p { font-size: 13px; color: var(--text-muted); }
+        .header-actions { display: flex; gap: 12px; align-items: center; }
+        .badge-live {
+            background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.3);
+            padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px;
+        }
+        .pulse-dot { width: 8px; height: 8px; background: var(--accent-green); border-radius: 50%; box-shadow: 0 0 10px var(--accent-green); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.2); } }
+        
+        .btn-docs {
+            background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4);
+            padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none; transition: all 0.2s;
+        }
+        .btn-docs:hover { background: rgba(59, 130, 246, 0.35); color: #fff; }
+
+        /* Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 992px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Panels & Glassmorphic Cards */
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .panel-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+        }
+        .panel-header h2 { font-size: 17px; font-weight: 600; display: flex; align-items: center; gap: 10px; color: #f1f5f9; }
+
+        /* Agronomic Imputation Controls */
+        .agronomic-form {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 20px;
+        }
+        .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-control {
+            width: 100%; background: #0f172a; border: 1px solid #334155; color: #f8fafc; padding: 10px 14px; border-radius: 8px; font-size: 14px; outline: none; transition: 0.2s;
+        }
+        .form-control:focus { border-color: var(--accent-cyan); box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.25); }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #059669, #10b981); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; width: 100%; font-size: 14px;
+        }
+        .btn-primary:hover { opacity: 0.95; transform: translateY(-1px); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); }
+
+        /* Telemetry Cards Grid */
+        .fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+        @media (max-width: 640px) { .fields-grid { grid-template-columns: 1fr; } }
+        
+        .field-card {
+            background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; border-radius: 12px; padding: 20px; transition: 0.3s;
+        }
+        .field-card:hover { border-color: rgba(6, 182, 212, 0.4); transform: translateY(-2px); }
+        .field-name { font-size: 16px; font-weight: 700; color: #38bdf8; display: flex; justify-content: space-between; align-items: center; }
+        .crop-badge { background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 3px 10px; border-radius: 12px; font-size: 12px; }
+
+        .stat-row { display: flex; justify-content: space-between; margin-top: 14px; font-size: 13px; color: var(--text-muted); }
+        .stat-val { color: #f8fafc; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+
+        .progress-bar-bg { width: 100%; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; margin-top: 8px; }
+        .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #10b981); border-radius: 4px; transition: width 0.5s ease; }
+
+        .actuator-btn {
+            width: 100%; margin-top: 16px; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; transition: 0.2s;
+        }
+        .actuator-btn.start { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+        .actuator-btn.start:hover { background: var(--accent-green); color: white; }
+        .actuator-btn.stop { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+        .actuator-btn.stop:hover { background: var(--accent-danger); color: white; }
+
+        /* Agent Chat Terminal */
+        .chat-terminal { display: flex; flex-direction: column; height: 520px; }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 12px; background: rgba(15, 23, 42, 0.8); border-radius: 10px; border: 1px solid #334155; margin-bottom: 12px; display: flex; flex-direction: column; gap: 12px; }
+        .msg { padding: 10px 14px; border-radius: 10px; font-size: 13px; line-height: 1.5; max-width: 88%; }
+        .msg-user { background: #0284c7; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .msg-agent { background: #1e293b; color: #f1f5f9; border: 1px solid #334155; align-self: flex-start; border-bottom-left-radius: 2px; }
+        .msg-meta { font-size: 11px; opacity: 0.7; margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+
+        .chat-input-box { display: flex; gap: 8px; }
+        .chat-input { flex: 1; background: #0f172a; border: 1px solid #334155; color: white; padding: 12px; border-radius: 8px; outline: none; font-size: 13px; }
+        .chat-send-btn { background: var(--accent-blue); color: white; border: none; padding: 0 18px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+
+        /* Tank & Weather Widgets */
+        .widget-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .widget-card { background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; padding: 16px; border-radius: 12px; }
+        .widget-title { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-bottom: 8px; }
+        .widget-value { font-size: 22px; font-weight: 700; color: #f8fafc; font-family: 'JetBrains Mono', monospace; }
+
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-card { background: #1e293b; border: 1px solid var(--accent-warning); width: 90%; max-width: 480px; padding: 24px; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
+        .modal-title { color: var(--accent-warning); font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="brand">
+            <div class="brand-icon">🌱</div>
+            <div class="brand-title">
+                <h1>AI Farm Operations Command Center</h1>
+                <p>Autonomous Agronomic Soil-Crop Telemetry & Multi-Agent Safety Engine</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <div class="badge-live"><div class="pulse-dot"></div> LIVE VERCEL NODE</div>
+            <a href="/docs" class="btn-docs" target="_blank">🚀 API Docs (/docs)</a>
+        </div>
+    </header>
+
+    <div class="dashboard-grid">
+        <!-- Left Main Column -->
+        <div>
+            <!-- Overview Widgets -->
+            <div class="glass-panel">
+                <div class="widget-grid">
+                    <div class="widget-card">
+                        <div class="widget-title">🚰 Water Tank Level</div>
+                        <div class="widget-value" id="tank-level">75.0%</div>
+                        <div class="progress-bar-bg"><div class="progress-bar-fill" id="tank-bar" style="width: 75%;"></div></div>
+                        <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">Capacity: 10,000 Litres</div>
+                    </div>
+                    <div class="widget-card">
+                        <div class="widget-title">🌤️ Live Weather (Bangalore)</div>
+                        <div class="widget-value" id="weather-temp">27.5 °C</div>
+                        <div style="font-size:13px; color:#38bdf8; margin-top:4px;" id="weather-humidity">Humidity: 62% | Rain: 15%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 1: Dynamic Soil-Crop Agronomic Parameter Imputation Panel -->
+            <div class="glass-panel">
+                <div class="panel-header">
+                    <h2>🌾 Phase 1: Dynamic Soil-Crop Agronomic Imputation Engine</h2>
+                </div>
+                <div class="agronomic-form">
+                    <div class="form-group">
+                        <label>Select Target Field</label>
+                        <select id="sel-field" class="form-control">
+                            <option value="Field A">Field A (Tomato)</option>
+                            <option value="Field B">Field B (Wheat)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Soil Type (FAO-56)</label>
+                        <select id="sel-soil" class="form-control">
+                            <option value="Sandy">Sandy (FC: 22%, PWP: 10%)</option>
+                            <option value="Loamy" selected>Loamy (FC: 32%, PWP: 15%)</option>
+                            <option value="Clay">Clay (FC: 48%, PWP: 26%)</option>
+                            <option value="Silt">Silt (FC: 36%, PWP: 18%)</option>
+                            <option value="Peat">Peat (FC: 55%, PWP: 30%)</option>
+                            <option value="Saline">Saline (FC: 28%, PWP: 14%)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Crop Type</label>
+                        <select id="sel-crop" class="form-control">
+                            <option value="Tomato" selected>Tomato (MAD: 0.35 - 0.45)</option>
+                            <option value="Wheat">Wheat (MAD: 0.55)</option>
+                            <option value="Rice">Rice (MAD: 0.20)</option>
+                            <option value="Cotton">Cotton (MAD: 0.65)</option>
+                            <option value="Maize">Maize (MAD: 0.50)</option>
+                            <option value="Sugarcane">Sugarcane (MAD: 0.60)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Growth Stage</label>
+                        <select id="sel-stage" class="form-control">
+                            <option value="Vegetative" selected>Vegetative</option>
+                            <option value="Flowering">Flowering</option>
+                            <option value="Yield Formation">Yield Formation</option>
+                            <option value="Maturity">Maturity</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="updateAgronomicProfile()">⚡ Impute Agronomic Thresholds & Save</button>
+
+                <div id="agronomic-output" style="margin-top: 16px; padding: 12px; background: rgba(15,23,42,0.8); border-radius: 8px; font-size: 13px; color: #a7f3d0; border: 1px solid #334155; display: none;"></div>
+            </div>
+
+            <!-- Field Telemetry Cards -->
+            <div class="glass-panel">
+                <div class="panel-header">
+                    <h2>📊 Live Field Telemetry & Actuators</h2>
+                </div>
+                <div class="fields-grid" id="fields-container">
+                    <!-- Loaded dynamically via JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar Column: AI Agent Chat -->
+        <div>
+            <div class="glass-panel chat-terminal">
+                <div class="panel-header">
+                    <h2>🤖 AFOCC Autonomous AI Agent</h2>
+                </div>
+                <div class="chat-messages" id="chat-msgs">
+                    <div class="msg msg-agent">
+                        👋 Hello Farmer! I am your AI Farm Command Agent. I monitor soil moisture, water tank capacity, and weather forecasts. How can I assist your farm operations today?
+                    </div>
+                </div>
+                <div class="chat-input-box">
+                    <input type="text" id="chat-input" class="chat-input" placeholder="e.g. Check Field A soil moisture..." onkeypress="if(event.key==='Enter') sendCommand()">
+                    <button class="chat-send-btn" onclick="sendCommand()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2-Step Safety Verification Modal -->
+<div class="modal-overlay" id="safety-modal">
+    <div class="modal-card">
+        <div class="modal-title">⚠️ Multi-Agent Safety Alert</div>
+        <p style="font-size:14px; color:#cbd5e1; margin-bottom:14px;" id="modal-msg"></p>
+        <div style="display:flex; gap:10px;">
+            <button class="actuator-btn start" onclick="confirmSafetyAction(true)" style="margin:0;">Authorize Operation</button>
+            <button class="actuator-btn stop" onclick="confirmSafetyAction(false)" style="margin:0;">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let pendingSafetyAction = null;
+
+    async function fetchFarmStatus() {
+        try {
+            const res = await fetch('/api/farm/status');
+            const data = await res.json();
+            
+            // Update Tank Widget
+            document.getElementById('tank-level').innerText = data.water_tank.current_level_pct + '%';
+            document.getElementById('tank-bar').style.width = data.water_tank.current_level_pct + '%';
+            
+            // Update Weather Widget
+            document.getElementById('weather-temp').innerText = data.weather.temperature_c + ' °C';
+            document.getElementById('weather-humidity').innerText = `Humidity: ${data.weather.humidity_pct}% | Rain: ${data.weather.rain_probability_pct}%`;
+            
+            // Render Fields
+            const container = document.getElementById('fields-container');
+            container.innerHTML = '';
+            
+            data.fields.forEach(f => {
+                const card = document.createElement('div');
+                card.className = 'field-card';
+                card.innerHTML = `
+                    <div class="field-name">
+                        ${f.name} <span class="crop-badge">${f.crop}</span>
+                    </div>
+                    <div class="stat-row"><span>Soil Moisture:</span><span class="stat-val" style="color:${f.soil_moisture_pct < f.optimal_moisture_threshold_pct ? '#f87171' : '#34d399'};">${f.soil_moisture_pct}%</span></div>
+                    <div class="stat-row"><span>Optimal Threshold:</span><span class="stat-val">${f.optimal_moisture_threshold_pct}%</span></div>
+                    <div class="stat-row"><span>Soil Type:</span><span class="stat-val">${f.soil_type || 'Loamy'}</span></div>
+                    <div class="stat-row"><span>Growth Stage:</span><span class="stat-val">${f.growth_stage || 'Vegetative'}</span></div>
+                    <div class="stat-row"><span>NPK (N-P-K):</span><span class="stat-val">${f.nitrogen_ppm}-${f.phosphorus_ppm}-${f.potassium_ppm} ppm</span></div>
+                    <div class="stat-row"><span>Irrigation Pump:</span><span class="stat-val" style="color:${f.irrigation_status === 'ON' ? '#34d399' : '#94a3b8'};">${f.irrigation_status}</span></div>
+                    
+                    <button class="actuator-btn ${f.irrigation_status === 'ON' ? 'stop' : 'start'}" onclick="toggleIrrigation('${f.name}', '${f.irrigation_status}')">
+                        ${f.irrigation_status === 'ON' ? '🛑 STOP IRRIGATION' : '💧 START IRRIGATION'}
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        } catch (e) {
+            console.error('Error fetching farm status:', e);
+        }
+    }
+
+    async function updateAgronomicProfile() {
+        const fieldName = document.getElementById('sel-field').value;
+        const soilType = document.getElementById('sel-soil').value;
+        const crop = document.getElementById('sel-crop').value;
+        const stage = document.getElementById('sel-stage').value;
+
+        try {
+            const res = await fetch('/api/agronomic/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ field_name: fieldName, soil_type: soilType, crop: crop, growth_stage: stage })
+            });
+            const data = await res.json();
+            
+            const out = document.getElementById('agronomic-output');
+            out.style.display = 'block';
+            if (data.success) {
+                out.innerHTML = `✅ <strong>${data.message}</strong><br>New Optimal Irrigation Threshold: <strong>${data.updated_profile.new_optimal_threshold_pct}%</strong> (FC: ${data.updated_profile.field_capacity_pct}%, PWP: ${data.updated_profile.wilting_point_pct}%)`;
+            } else {
+                out.innerText = '❌ Error updating agronomic profile.';
+            }
+            fetchFarmStatus();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function toggleIrrigation(fieldName, currentStatus) {
+        const action = currentStatus === 'ON' ? 'STOP_IRRIGATION' : 'START_IRRIGATION';
+        
+        // Safety pre-check
+        const sRes = await fetch('/api/safety/validate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ field_name: fieldName, action: action })
+        });
+        const safety = await sRes.json();
+        
+        if (safety.requires_confirmation) {
+            pendingSafetyAction = { fieldName, action };
+            document.getElementById('modal-msg').innerText = safety.reason + ' Do you want to proceed with authorization?';
+            document.getElementById('safety-modal').style.display = 'flex';
+        } else if (!safety.is_safe) {
+            alert('🚨 SAFETY GATE BLOCKED: ' + safety.reason);
+        } else {
+            // Execute directly
+            const url = action === 'START_IRRIGATION' ? '/api/tools/start-irrigation' : '/api/tools/stop-irrigation';
+            await fetch(`${url}?field_name=${encodeURIComponent(fieldName)}`, { method: 'POST' });
+            fetchFarmStatus();
+        }
+    }
+
+    async function confirmSafetyAction(authorized) {
+        document.getElementById('safety-modal').style.display = 'none';
+        if (authorized && pendingSafetyAction) {
+            const url = pendingSafetyAction.action === 'START_IRRIGATION' ? '/api/tools/start-irrigation' : '/api/tools/stop-irrigation';
+            await fetch(`${url}?field_name=${encodeURIComponent(pendingSafetyAction.fieldName)}&skip_safety=true`, { method: 'POST' });
+            fetchFarmStatus();
+        }
+        pendingSafetyAction = null;
+    }
+
+    async function sendCommand() {
+        const input = document.getElementById('chat-input');
+        const text = input.value.trim();
+        if (!text) return;
+        
+        // Append user msg
+        const chatMsgs = document.getElementById('chat-msgs');
+        chatMsgs.innerHTML += `<div class="msg msg-user">${text}</div>`;
+        input.value = '';
+        chatMsgs.scrollTop = chatMsgs.scrollHeight;
+
+        try {
+            const res = await fetch('/api/agent/command', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: text })
+            });
+            const data = await res.json();
+            
+            chatMsgs.innerHTML += `
+                <div class="msg msg-agent">
+                    <strong>Intent:</strong> <span style="color:#38bdf8;">${data.intent}</span><br>
+                    ${data.response || data.details || JSON.stringify(data.result)}
+                    <div class="msg-meta">Status: ${data.status} | Execution: ${data.action_taken || 'Completed'}</div>
+                </div>
+            `;
+            chatMsgs.scrollTop = chatMsgs.scrollHeight;
+            fetchFarmStatus();
+        } catch (e) {
+            chatMsgs.innerHTML += `<div class="msg msg-agent" style="color:#f87171;">Error processing command: ${e}</div>`;
+        }
+    }
+
+    // Initial Load & Auto-Refresh
+    fetchFarmStatus();
+    setInterval(fetchFarmStatus, 10000);
+</script>
+</body>
+</html>
+"""
