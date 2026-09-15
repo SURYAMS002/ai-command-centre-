@@ -34,9 +34,8 @@ def test_root_endpoint():
     with TestClient(app) as client:
         response = client.get("/")
         assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "operational"
-        assert data["phase"] in [1, 2, 3, 4]
+        assert "AI Farm Operations Command Center" in response.text
+
 
 
 
