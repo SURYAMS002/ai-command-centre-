@@ -116,7 +116,7 @@ try:
         st.caption(f"Humidity: {weather.humidity_pct}% | Sector: {farm.location}")
 
     # --- AGRONOMIC SOIL-CROP PARAMETER IMPUTATION PANEL ---
-    with st.expander("🌾 Dynamic Soil-Crop Agronomic Parameter Imputation Panel (Review 2 Feedback)", expanded=False):
+    with st.expander("🌾 Dynamic Soil-Crop Agronomic Parameter Imputation Panel (Review 2 Feedback)", expanded=True):
         st.markdown("##### Dynamic FAO-56 Soil Classification & Crop Stage Imputation")
         ag_col1, ag_col2 = st.columns(2)
 
@@ -251,16 +251,18 @@ with col_chat:
                 st.rerun()
 
 with col_sidebar_info:
-    st.subheader("⚙️ System Operations & Decision Rules")
+    st.subheader("⚙️ System Operations & Dynamic Decision Rules")
 
-    st.info("""
-    **AFOCC Decision Engine Rules:**
-    - 💧 **Soil Moisture Threshold:** < 30%
-    - 🛢 **Minimum Water Reserve:** > 20% (Blocked if ≤ 10%)
-    - 🌧 **Rainfall Threshold:** < 60%
+    st.info(f"""
+    **AFOCC Dynamic Agronomic Decision Rules:**
+    - 💧 **{field_a.name} ({field_a.crop} / {field_a.soil_type}):** Irrigate if Moisture < **{field_a.optimal_moisture_threshold_pct}%** (FC: {field_a.field_capacity_pct}%, PWP: {field_a.wilting_point_pct}%)
+    - 💧 **{field_b.name} ({field_b.crop} / {field_b.soil_type}):** Irrigate if Moisture < **{field_b.optimal_moisture_threshold_pct}%** (FC: {field_b.field_capacity_pct}%, PWP: {field_b.wilting_point_pct}%)
+    - 🛢 **Minimum Water Reserve:** > 20% (Safety Gate Blocked if ≤ 10%)
+    - 🌧 **Rainfall Forecast Threshold:** < 60% Rain Prob
     
-    *Irrigation is recommended ONLY when all safety conditions are met.*
+    *Irrigation decisions automatically adapt to soil type, crop, & growth stage.*
     """)
+
 
     # --- SIMULATED SENSOR OVERRIDE CONTROLS ---
     st.markdown("### 🎛 Simulated Sensor Overrides")
