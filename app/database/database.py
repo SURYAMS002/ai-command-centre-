@@ -50,6 +50,15 @@ def init_db(db_path: Optional[Path] = None, seed_path: Optional[Path] = None):
             area_acres REAL NOT NULL,
             soil_moisture_pct REAL NOT NULL,
             irrigation_status TEXT NOT NULL CHECK(irrigation_status IN ('ON', 'OFF')),
+            soil_type TEXT NOT NULL DEFAULT 'Loamy',
+            growth_stage TEXT NOT NULL DEFAULT 'Vegetative',
+            ph_level REAL NOT NULL DEFAULT 6.8,
+            nitrogen_ppm REAL NOT NULL DEFAULT 140.0,
+            phosphorus_ppm REAL NOT NULL DEFAULT 50.0,
+            potassium_ppm REAL NOT NULL DEFAULT 180.0,
+            wilting_point_pct REAL NOT NULL DEFAULT 15.0,
+            field_capacity_pct REAL NOT NULL DEFAULT 32.0,
+            optimal_moisture_threshold_pct REAL NOT NULL DEFAULT 30.0,
             updated_at TEXT NOT NULL,
             FOREIGN KEY (farm_id) REFERENCES farm (id)
         );
@@ -79,6 +88,26 @@ def init_db(db_path: Optional[Path] = None, seed_path: Optional[Path] = None):
             details TEXT
         );
     """)
+
+    # Schema migration helper for existing SQLite databases
+    cursor.execute("PRAGMA table_info(fields);")
+    existing_cols = [row["name"] for row in cursor.fetchall()]
+    new_cols_sql = {
+        "soil_type": "TEXT NOT NULL DEFAULT 'Loamy'",
+        "growth_stage": "TEXT NOT NULL DEFAULT 'Vegetative'",
+        "ph_level": "REAL NOT NULL DEFAULT 6.8",
+        "nitrogen_ppm": "REAL NOT NULL DEFAULT 140.0",
+        "phosphorus_ppm": "REAL NOT NULL DEFAULT 50.0",
+        "potassium_ppm": "REAL NOT NULL DEFAULT 180.0",
+        "wilting_point_pct": "REAL NOT NULL DEFAULT 15.0",
+        "field_capacity_pct": "REAL NOT NULL DEFAULT 32.0",
+        "optimal_moisture_threshold_pct": "REAL NOT NULL DEFAULT 30.0"
+    }
+
+    for col_name, col_def in new_cols_sql.items():
+        if col_name not in existing_cols:
+            cursor.execute(f"ALTER TABLE fields ADD COLUMN {col_name} {col_def};")
+
     conn.commit()
 
     # Seed initial data if farm table is empty
@@ -107,11 +136,26 @@ def init_db(db_path: Optional[Path] = None, seed_path: Optional[Path] = None):
         )
 
         # Insert Fields
+        from app.services.agronomic_engine import AgronomicParameterEngine
         for field in seed_data.get("fields", []):
+            s_type = field.get("soil_type", "Loamy" if field["name"] == "Field A" else "Clay")
+            g_stage = field.get("growth_stage", "Flowering" if field["name"] == "Field A" else "Vegetative")
+            profile = AgronomicParameterEngine.impute_field_parameters(
+                soil_type=s_type,
+                crop=field["crop"],
+                growth_stage=g_stage
+            )
             cursor.execute(
-                """INSERT INTO fields (farm_id, name, crop, area_acres, soil_moisture_pct, irrigation_status, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?);""",
-                (farm_id, field["name"], field["crop"], field["area_acres"], field["soil_moisture_pct"], field["irrigation_status"], now)
+                """INSERT INTO fields (
+                    farm_id, name, crop, area_acres, soil_moisture_pct, irrigation_status,
+                    soil_type, growth_stage, ph_level, nitrogen_ppm, phosphorus_ppm, potassium_ppm,
+                    wilting_point_pct, field_capacity_pct, optimal_moisture_threshold_pct, updated_at
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);""",
+                (
+                    farm_id, field["name"], field["crop"], field["area_acres"], field["soil_moisture_pct"], field["irrigation_status"],
+                    profile.soil_type, profile.growth_stage, profile.ph_level, profile.nitrogen_ppm, profile.phosphorus_ppm, profile.potassium_ppm,
+                    profile.pwp_pct, profile.fc_pct, profile.optimal_moisture_threshold_pct, now
+                )
             )
 
         # Insert Weather

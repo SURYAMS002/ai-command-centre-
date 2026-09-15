@@ -49,12 +49,30 @@ class IrrigationDecisionEngine:
 
         conn.close()
 
-        # Evaluate rules
+        # Evaluate rules using dynamic soil-crop thresholds
+        from app.services.agronomic_engine import AgronomicParameterEngine
+
+        soil_type = field.get("soil_type", "Loamy")
+        crop = field.get("crop", "Tomato")
+        growth_stage = field.get("growth_stage", "Vegetative")
+
+        agronomic_profile = AgronomicParameterEngine.impute_field_parameters(
+            soil_type=soil_type,
+            crop=crop,
+            growth_stage=growth_stage,
+            ph_level=field.get("ph_level"),
+            nitrogen_ppm=field.get("nitrogen_ppm"),
+            phosphorus_ppm=field.get("phosphorus_ppm"),
+            potassium_ppm=field.get("potassium_ppm")
+        )
+
+        effective_threshold = field.get("optimal_moisture_threshold_pct") or agronomic_profile.optimal_moisture_threshold_pct
+
         soil_moisture = field["soil_moisture_pct"]
         tank_level = tank["current_level_pct"]
         rain_prob = weather["rain_probability_pct"]
 
-        soil_condition_met = soil_moisture < self.config.soil_moisture_threshold
+        soil_condition_met = soil_moisture < effective_threshold
         tank_condition_met = tank_level > self.config.min_tank_level_pct
         rain_condition_met = rain_prob < self.config.rain_probability_threshold
 
@@ -63,9 +81,13 @@ class IrrigationDecisionEngine:
         # Build explainable natural language rationale
         reasons = []
         if not soil_condition_met:
-            reasons.append(f"soil moisture is sufficient ({soil_moisture:.1f}% >= threshold {self.config.soil_moisture_threshold:.1f}%)")
+            reasons.append(
+                f"soil moisture is sufficient ({soil_moisture:.1f}% >= dynamic threshold {effective_threshold:.1f}% for {soil_type} soil / {crop} {growth_stage} stage)"
+            )
         else:
-            reasons.append(f"soil moisture is low ({soil_moisture:.1f}% < threshold {self.config.soil_moisture_threshold:.1f}%)")
+            reasons.append(
+                f"soil moisture is below optimal threshold ({soil_moisture:.1f}% < dynamic threshold {effective_threshold:.1f}% for {soil_type} soil / {crop} {growth_stage} stage)"
+            )
 
         if not tank_condition_met:
             reasons.append(f"water tank level is critically low ({tank_level:.1f}% <= minimum {self.config.min_tank_level_pct:.1f}%)")
@@ -79,21 +101,26 @@ class IrrigationDecisionEngine:
 
         if recommended:
             summary = (
-                f"Irrigation IS RECOMMENDED for {field['name']}. "
-                f"Reason: Soil moisture is low ({soil_moisture:.1f}%), tank level is adequate ({tank_level:.1f}%), "
-                f"and rainfall probability is low ({rain_prob:.1f}%)."
+                f"Irrigation IS RECOMMENDED for {field['name']} ({crop}, {soil_type} Soil, {growth_stage} Stage). "
+                f"Reason: Soil moisture ({soil_moisture:.1f}%) is below optimal threshold ({effective_threshold:.1f}%), "
+                f"tank level is adequate ({tank_level:.1f}%), and rainfall probability is low ({rain_prob:.1f}%)."
             )
         else:
             summary = f"Irrigation IS NOT RECOMMENDED for {field['name']}. Reason: " + "; ".join(reasons) + "."
 
         return {
             "field": field["name"],
-            "crop": field["crop"],
+            "crop": crop,
+            "soil_type": soil_type,
+            "growth_stage": growth_stage,
             "recommended": recommended,
             "summary": summary,
+            "agronomic_rationale": agronomic_profile.rationale,
             "metrics": {
                 "soil_moisture_pct": soil_moisture,
-                "soil_moisture_threshold_pct": self.config.soil_moisture_threshold,
+                "soil_moisture_threshold_pct": effective_threshold,
+                "wilting_point_pct": agronomic_profile.pwp_pct,
+                "field_capacity_pct": agronomic_profile.fc_pct,
                 "soil_condition_met": soil_condition_met,
                 "tank_level_pct": tank_level,
                 "min_tank_level_pct": self.config.min_tank_level_pct,
@@ -101,7 +128,8 @@ class IrrigationDecisionEngine:
                 "rain_probability_pct": rain_prob,
                 "rain_probability_threshold_pct": self.config.rain_probability_threshold,
                 "rain_condition_met": rain_condition_met,
-                "current_irrigation_status": field["irrigation_status"]
+                "current_irrigation_status": field["irrigation_status"],
+                "npk_status": agronomic_profile.npk_status
             }
         }
 

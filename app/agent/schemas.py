@@ -108,5 +108,51 @@ OPENAI_TOOLS = [
                 "required": ["field_name"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_soil_crop_parameters",
+            "description": "Retrieves comprehensive FAO-56 dynamic agronomic parameters for a field: soil type, crop, growth stage, NPK, pH, wilting point, field capacity, and optimal moisture depletion threshold.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "field_name": {
+                        "type": "string",
+                        "description": "The target field name, e.g. 'Field A' or 'Field B'."
+                    }
+                },
+                "required": ["field_name"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "update_field_agronomic_profile",
+            "description": "Updates the agronomic classification profile for a field (soil type, crop, growth stage, pH) and automatically recalculates dynamic moisture thresholds.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "field_name": {
+                        "type": "string",
+                        "description": "The target field name, e.g. 'Field A' or 'Field B'."
+                    },
+                    "soil_type": {
+                        "type": "string",
+                        "description": "Soil type: 'Clay', 'Sandy', 'Loamy', 'Silt', 'Peat', 'Saline'."
+                    },
+                    "crop": {
+                        "type": "string",
+                        "description": "Crop type: 'Tomato', 'Wheat', 'Rice', 'Cotton', 'Maize', 'Sugarcane'."
+                    },
+                    "growth_stage": {
+                        "type": "string",
+                        "description": "Crop growth stage: 'Initial/Vegetative', 'Flowering', 'Yield Formation', 'Maturity'."
+                    }
+                },
+                "required": ["field_name"]
+            }
+        }
     }
 ]

@@ -93,19 +93,19 @@ try:
         st.metric(
             label=f"🌱 {field_a.name} ({field_a.crop})",
             value=f"{field_a.soil_moisture_pct}%",
-            delta="Soil Moisture"
+            delta=f"Thresh: {field_a.optimal_moisture_threshold_pct}% ({field_a.soil_type} Soil)"
         )
         status_a = "🟢 Irrigation ON" if field_a.irrigation_status == "ON" else "⚪ Irrigation OFF"
-        st.caption(f"Status: **{status_a}** | Area: {field_a.area_acres} acre")
+        st.caption(f"Status: **{status_a}** | Stage: {field_a.growth_stage}")
 
     with col3:
         st.metric(
             label=f"🌾 {field_b.name} ({field_b.crop})",
             value=f"{field_b.soil_moisture_pct}%",
-            delta="Soil Moisture"
+            delta=f"Thresh: {field_b.optimal_moisture_threshold_pct}% ({field_b.soil_type} Soil)"
         )
         status_b = "🟢 Irrigation ON" if field_b.irrigation_status == "ON" else "⚪ Irrigation OFF"
-        st.caption(f"Status: **{status_b}** | Area: {field_b.area_acres} acres")
+        st.caption(f"Status: **{status_b}** | Stage: {field_b.growth_stage}")
 
     with col4:
         st.metric(
@@ -114,6 +114,39 @@ try:
             delta=f"Rain Prob: {weather.rain_probability_pct}%"
         )
         st.caption(f"Humidity: {weather.humidity_pct}% | Sector: {farm.location}")
+
+    # --- AGRONOMIC SOIL-CROP PARAMETER IMPUTATION PANEL ---
+    with st.expander("🌾 Dynamic Soil-Crop Agronomic Parameter Imputation Panel (Review 2 Feedback)", expanded=False):
+        st.markdown("##### Dynamic FAO-56 Soil Classification & Crop Stage Imputation")
+        ag_col1, ag_col2 = st.columns(2)
+
+        from app.tools.agronomic_tools import update_field_agronomic_profile
+
+        with ag_col1:
+            st.markdown(f"**{field_a.name} Profile Configuration:**")
+            a_soil = st.selectbox("Soil Type (Field A)", ["Loamy", "Clay", "Sandy", "Silt", "Peat", "Saline"], index=["Loamy", "Clay", "Sandy", "Silt", "Peat", "Saline"].index(field_a.soil_type) if field_a.soil_type in ["Loamy", "Clay", "Sandy", "Silt", "Peat", "Saline"] else 0, key="a_soil")
+            a_crop = st.selectbox("Crop Type (Field A)", ["Tomato", "Wheat", "Rice", "Cotton", "Maize", "Sugarcane"], index=["Tomato", "Wheat", "Rice", "Cotton", "Maize", "Sugarcane"].index(field_a.crop) if field_a.crop in ["Tomato", "Wheat", "Rice", "Cotton", "Maize", "Sugarcane"] else 0, key="a_crop")
+            a_stage = st.selectbox("Growth Stage (Field A)", ["Initial/Vegetative", "Flowering", "Yield Formation", "Maturity"], index=["Initial/Vegetative", "Flowering", "Yield Formation", "Maturity"].index(field_a.growth_stage) if field_a.growth_stage in ["Initial/Vegetative", "Flowering", "Yield Formation", "Maturity"] else 1, key="a_stage")
+
+            if (a_soil != field_a.soil_type) or (a_crop != field_a.crop) or (a_stage != field_a.growth_stage):
+                update_field_agronomic_profile(field_a.name, soil_type=a_soil, crop=a_crop, growth_stage=a_stage)
+                st.success(f"Imputed new dynamic parameters for {field_a.name}!")
+                st.rerun()
+
+            st.info(f"**Imputed Thresholds:** Wilting Point {field_a.wilting_point_pct}% | Field Capacity {field_a.field_capacity_pct}% | Optimal Trigger: **{field_a.optimal_moisture_threshold_pct}%**")
+
+        with ag_col2:
+            st.markdown(f"**{field_b.name} Profile Configuration:**")
+            b_soil = st.selectbox("Soil Type (Field B)", ["Loamy", "Clay", "Sandy", "Silt", "Peat", "Saline"], index=["Loamy", "Clay", "Sandy", "Silt", "Peat", "Saline"].index(field_b.soil_type) if field_b.soil_type in ["Loamy", "Clay", "Sandy", "Silt", "Peat", "Saline"] else 1, key="b_soil")
+            b_crop = st.selectbox("Crop Type (Field B)", ["Tomato", "Wheat", "Rice", "Cotton", "Maize", "Sugarcane"], index=["Tomato", "Wheat", "Rice", "Cotton", "Maize", "Sugarcane"].index(field_b.crop) if field_b.crop in ["Tomato", "Wheat", "Rice", "Cotton", "Maize", "Sugarcane"] else 2, key="b_crop")
+            b_stage = st.selectbox("Growth Stage (Field B)", ["Initial/Vegetative", "Flowering", "Yield Formation", "Maturity"], index=["Initial/Vegetative", "Flowering", "Yield Formation", "Maturity"].index(field_b.growth_stage) if field_b.growth_stage in ["Initial/Vegetative", "Flowering", "Yield Formation", "Maturity"] else 0, key="b_stage")
+
+            if (b_soil != field_b.soil_type) or (b_crop != field_b.crop) or (b_stage != field_b.growth_stage):
+                update_field_agronomic_profile(field_b.name, soil_type=b_soil, crop=b_crop, growth_stage=b_stage)
+                st.success(f"Imputed new dynamic parameters for {field_b.name}!")
+                st.rerun()
+
+            st.info(f"**Imputed Thresholds:** Wilting Point {field_b.wilting_point_pct}% | Field Capacity {field_b.field_capacity_pct}% | Optimal Trigger: **{field_b.optimal_moisture_threshold_pct}%**")
 
 except Exception as e:
     st.error(f"Failed to load live farm telemetry: {e}")

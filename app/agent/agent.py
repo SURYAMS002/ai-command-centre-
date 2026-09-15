@@ -19,6 +19,10 @@ from app.tools import (
     start_irrigation,
     stop_irrigation
 )
+from app.tools.agronomic_tools import (
+    get_soil_crop_parameters,
+    update_field_agronomic_profile
+)
 
 class AFOCCAgent:
     """
@@ -36,6 +40,8 @@ class AFOCCAgent:
             "check_irrigation_requirement": check_irrigation_requirement,
             "start_irrigation": start_irrigation,
             "stop_irrigation": stop_irrigation,
+            "get_soil_crop_parameters": get_soil_crop_parameters,
+            "update_field_agronomic_profile": update_field_agronomic_profile,
         }
 
     def _extract_field_name(self, text: str) -> str:
@@ -128,6 +134,18 @@ class AFOCCAgent:
                 "tools_called": [],
                 "status": "PENDING_CONFIRMATION",
                 "pending_action": {"field_name": field, "action": "START_IRRIGATION"}
+            }
+
+        elif "soil type" in cmd_lower or "agronomic" in cmd_lower or "parameters" in cmd_lower or "npk" in cmd_lower:
+            field = self._extract_field_name(farmer_command)
+            res = get_soil_crop_parameters(field, db_path=db_path)
+            tools_called.append({"tool": "get_soil_crop_parameters", "args": {"field_name": field}, "output": res})
+            response_text = f"Agronomic Parameters for {field}: {res.get('rationale')}"
+            return {
+                "command": farmer_command,
+                "response": response_text,
+                "tools_called": tools_called,
+                "status": "SUCCESS"
             }
 
         elif "soil" in cmd_lower or "moisture" in cmd_lower:

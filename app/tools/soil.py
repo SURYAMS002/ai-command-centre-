@@ -30,14 +30,39 @@ def get_soil_moisture(field_name: str, db_path: Optional[Path] = None) -> Dict[s
         return result
 
     data = dict(row)
+    from app.services.agronomic_engine import AgronomicParameterEngine
+    s_type = data.get("soil_type", "Loamy")
+    g_stage = data.get("growth_stage", "Vegetative")
+
+    profile = AgronomicParameterEngine.impute_field_parameters(
+        soil_type=s_type,
+        crop=data["crop"],
+        growth_stage=g_stage,
+        ph_level=data.get("ph_level"),
+        nitrogen_ppm=data.get("nitrogen_ppm"),
+        phosphorus_ppm=data.get("phosphorus_ppm"),
+        potassium_ppm=data.get("potassium_ppm")
+    )
+
     result = {
         "field_name": data["name"],
         "crop": data["crop"],
+        "soil_type": s_type,
+        "growth_stage": g_stage,
         "area_acres": data["area_acres"],
         "soil_moisture_pct": data["soil_moisture_pct"],
+        "wilting_point_pct": profile.pwp_pct,
+        "field_capacity_pct": profile.fc_pct,
+        "optimal_moisture_threshold_pct": profile.optimal_moisture_threshold_pct,
+        "ph_level": profile.ph_level,
+        "npk_status": profile.npk_status,
         "irrigation_status": data["irrigation_status"],
         "updated_at": data["updated_at"],
-        "summary": f"{data['name']} ({data['crop']}) soil moisture is {data['soil_moisture_pct']}%. Irrigation is currently {data['irrigation_status']}."
+        "summary": (
+            f"{data['name']} ({data['crop']}, {s_type} Soil, {g_stage} Stage): "
+            f"Soil moisture is {data['soil_moisture_pct']}%. Dynamic optimal threshold is {profile.optimal_moisture_threshold_pct}% "
+            f"(Wilting Point {profile.pwp_pct}%, Field Capacity {profile.fc_pct}%). Irrigation is currently {data['irrigation_status']}."
+        )
     }
 
     log_operation(

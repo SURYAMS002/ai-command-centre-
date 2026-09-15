@@ -24,6 +24,15 @@ class FieldModel(BaseModel):
     area_acres: float
     soil_moisture_pct: float
     irrigation_status: str  # "ON" | "OFF"
+    soil_type: str = "Loamy"
+    growth_stage: str = "Vegetative"
+    ph_level: float = 6.8
+    nitrogen_ppm: float = 140.0
+    phosphorus_ppm: float = 50.0
+    potassium_ppm: float = 180.0
+    wilting_point_pct: float = 15.0
+    field_capacity_pct: float = 32.0
+    optimal_moisture_threshold_pct: float = 30.0
     updated_at: Optional[str] = None
 
 class WeatherModel(BaseModel):
