@@ -18,48 +18,36 @@ from app.tools import (
 
 router = APIRouter()
 
+from pathlib import Path
 from fastapi.responses import HTMLResponse
+from app.tools.agronomic_tools import update_field_agronomic_profile
+
+TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "templates" / "dashboard.html"
 
 @router.get("/", response_class=HTMLResponse)
 async def root():
-    return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>AFOCC - AI Farm Operations Command Center</title>
-        <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; padding: 40px; margin: 0; }
-            .card { background: #1e293b; border-radius: 12px; padding: 30px; max-width: 700px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
-            h1 { color: #38bdf8; margin-top: 0; font-size: 28px; }
-            p { color: #94a3b8; line-height: 1.6; }
-            .btn { display: inline-block; background: #0284c7; color: white; padding: 12px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; margin-right: 10px; margin-top: 15px; transition: 0.2s; }
-            .btn:hover { background: #0369a1; }
-            .btn-alt { background: #10b981; }
-            .btn-alt:hover { background: #059669; }
-            .endpoint-box { background: #0f172a; padding: 15px; border-radius: 8px; margin-top: 20px; font-family: monospace; color: #a7f3d0; border: 1px solid #1e293b; }
-            .tag { background: #3b82f6; color: white; padding: 3px 8px; border-radius: 4px; font-size: 12px; vertical-align: middle; margin-left: 8px; }
-        </style>
-    </head>
-    <body>
-        <div class="card">
-            <h1>🌾 AI Farm Operations Command Center (AFOCC) <span class="tag">v1.0</span></h1>
-            <p>Phase 1 Dynamic Agronomic Soil-Crop Parameter Imputation Engine & Multi-Agent Safety System is operational on Vercel.</p>
-            
-            <a href="/docs" class="btn">🚀 Open Interactive API Specs (/docs)</a>
-            <a href="/api/farm/status" class="btn btn-alt">📊 Real-Time Farm Status API</a>
-            
-            <div class="endpoint-box">
-                <strong>Active Endpoints:</strong><br>
-                • GET  /api/farm/status<br>
-                • GET  /api/health<br>
-                • GET  /api/tools/soil-moisture?field_name=Field A<br>
-                • POST /api/agent/command<br>
-                • POST /api/safety/validate
-            </div>
-        </div>
-    </body>
-    </html>
-    """
+    if TEMPLATE_PATH.exists():
+        with open(TEMPLATE_PATH, "r", encoding="utf-8") as f:
+            return f.read()
+    return "<h1>AFOCC System Operational</h1><p>Open <a href='/docs'>/docs</a> for API specs.</p>"
+
+class AgronomicUpdateRequestModel(BaseModel):
+    field_name: str
+    soil_type: Optional[str] = None
+    crop: Optional[str] = None
+    growth_stage: Optional[str] = None
+    ph_level: Optional[float] = None
+
+@router.post("/api/agronomic/update")
+async def update_agronomic_profile_endpoint(payload: AgronomicUpdateRequestModel):
+    return update_field_agronomic_profile(
+        field_name=payload.field_name,
+        soil_type=payload.soil_type,
+        crop=payload.crop,
+        growth_stage=payload.growth_stage,
+        ph_level=payload.ph_level
+    )
+
 
 
 @router.get("/api/health")
