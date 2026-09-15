@@ -9,16 +9,26 @@ from app.database.models import (
     FarmModel, WaterTankModel, FieldModel, WeatherModel, FarmStatusModel
 )
 
+import os
+
 def get_connection(db_path: Optional[Path] = None) -> sqlite3.Connection:
     target_path = db_path or settings.DATABASE_PATH
-    target_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(target_path)
+    if os.environ.get("VERCEL"):
+        target_path = Path("/tmp") / "afocc.db"
+    try:
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(target_path)
+    except (PermissionError, OSError):
+        tmp_path = Path("/tmp") / "afocc.db"
+        tmp_path.parent.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(tmp_path)
     conn.row_factory = sqlite3.Row
     return conn
 
 def init_db(db_path: Optional[Path] = None, seed_path: Optional[Path] = None):
-    target_db = db_path or settings.DATABASE_PATH
+    target_db = db_path or (Path("/tmp") / "afocc.db" if os.environ.get("VERCEL") else settings.DATABASE_PATH)
     target_seed = seed_path or settings.SEED_DATA_PATH
+
 
     conn = get_connection(target_db)
     cursor = conn.cursor()
