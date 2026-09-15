@@ -154,169 +154,294 @@ except Exception as e:
 st.markdown("---")
 
 # --- MAIN LAYOUT: CHAT & COMMAND CENTER ---
-col_chat, col_sidebar_info = st.columns([3, 2])
+# --- MULTI-PERSPECTIVE DASHBOARD NAVIGATION ---
+tab_cmd, tab_water, tab_agronomic, tab_audit = st.tabs([
+    "🎛 Live Command & Control",
+    "📊 Past Irrigations & Water Pumped Analytics",
+    "🌾 Agronomic & Soil NPK Health Monitor",
+    "🤖 Farmer Queries & AI Audit Trail"
+])
 
-with col_chat:
-    st.subheader("💬 Farmer Natural-Language Console")
+# ==============================================================================
+# TAB 1: LIVE COMMAND & CONTROL CENTER
+# ==============================================================================
+with tab_cmd:
+    col_chat, col_sidebar_info = st.columns([3, 2])
 
-    # Quick Action Preset Buttons
-    st.markdown("**Quick Commands:**")
-    q_col1, q_col2, q_col3, q_col4 = st.columns(4)
-    quick_cmd = None
-    with q_col1:
-        if st.button("📊 Farm Status"):
-            quick_cmd = "Give me the farm status."
-    with q_col2:
-        if st.button("❓ Should Irrigate Field A?"):
-            quick_cmd = "Should I irrigate Field A?"
-    with q_col3:
-        if st.button("🚰 Irrigate Field A"):
-            quick_cmd = "Irrigate Field A."
-    with q_col4:
-        if st.button("⏹ Stop Irrigation"):
-            quick_cmd = "Stop irrigation."
+    with col_chat:
+        st.subheader("💬 Farmer Natural-Language Console")
 
-    # Display Chat History
-    for msg in st.session_state.messages:
-        with st.chat_message(msg["role"]):
-            st.write(msg["content"])
-            if "tools_called" in msg and msg["tools_called"]:
-                with st.expander("🛠 Executed Tools & Technical Rationale"):
-                    for t in msg["tools_called"]:
-                        st.json(t)
+        # Quick Action Preset Buttons
+        st.markdown("**Quick Commands:**")
+        q_col1, q_col2, q_col3, q_col4 = st.columns(4)
+        quick_cmd = None
+        with q_col1:
+            if st.button("📊 Farm Status"):
+                quick_cmd = "Give me the farm status."
+        with q_col2:
+            if st.button("❓ Should Irrigate Field A?"):
+                quick_cmd = "Should I irrigate Field A?"
+        with q_col3:
+            if st.button("🚰 Irrigate Field A"):
+                quick_cmd = "Irrigate Field A."
+        with q_col4:
+            if st.button("⏹ Stop Irrigation"):
+                quick_cmd = "Stop irrigation."
 
-    # Process Input from Chat Input or Quick Command
-    user_input = st.chat_input("Enter farm command (e.g., 'Check water tank', 'Irrigate Field A')...")
-    command_to_process = user_input or quick_cmd
+        # Display Chat History
+        for msg in st.session_state.messages:
+            with st.chat_message(msg["role"]):
+                st.write(msg["content"])
+                if "tools_called" in msg and msg["tools_called"]:
+                    with st.expander("🛠 Executed Tools & Technical Rationale"):
+                        for t in msg["tools_called"]:
+                            st.json(t)
 
-    if command_to_process:
-        # Display user message
-        st.session_state.messages.append({"role": "user", "content": command_to_process})
-        with st.chat_message("user"):
-            st.write(command_to_process)
+        # Process Input from Chat Input or Quick Command
+        user_input = st.chat_input("Enter farm command (e.g., 'Check water tank', 'Irrigate Field A')...")
+        command_to_process = user_input or quick_cmd
 
-        # Execute Agent Command
-        with st.spinner("AFOCC Agent reasoning & executing tools..."):
-            agent_res = default_agent.run_command(
-                command_to_process,
-                pending_action=st.session_state.pending_action
+        if command_to_process:
+            # Display user message
+            st.session_state.messages.append({"role": "user", "content": command_to_process})
+            with st.chat_message("user"):
+                st.write(command_to_process)
+
+            # Execute Agent Command
+            with st.spinner("AFOCC Agent reasoning & executing tools..."):
+                agent_res = default_agent.run_command(
+                    command_to_process,
+                    pending_action=st.session_state.pending_action
+                )
+
+            # Clear pending action if user input was processed
+            st.session_state.pending_action = agent_res.get("pending_action")
+
+            # Save assistant message
+            asst_msg = {
+                "role": "assistant",
+                "content": agent_res["response"],
+                "tools_called": agent_res.get("tools_called", []),
+                "status": agent_res.get("status")
+            }
+            st.session_state.messages.append(asst_msg)
+
+            # Rerun to update UI
+            st.rerun()
+
+        # --- PENDING CONFIRMATION PROMPT DIALOGUE ---
+        if st.session_state.pending_action:
+            st.warning("⚠️ **SAFETY CONFIRMATION REQUIRED**")
+            p_action = st.session_state.pending_action
+            field = p_action.get("field_name")
+            act = p_action.get("action")
+
+            c_col1, c_col2 = st.columns(2)
+            with c_col1:
+                if st.button("✅ Confirm & Start Irrigation", type="primary"):
+                    with st.spinner("Executing Safety & Automation Adapter..."):
+                        agent_res = default_agent.run_command(
+                            "Yes",
+                            pending_action=st.session_state.pending_action
+                        )
+                    st.session_state.pending_action = None
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": agent_res["response"],
+                        "tools_called": agent_res.get("tools_called", [])
+                    })
+                    st.rerun()
+
+            with c_col2:
+                if st.button("❌ Cancel Operation"):
+                    st.session_state.pending_action = None
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": "Operation cancelled by farmer.",
+                        "tools_called": []
+                    })
+                    st.rerun()
+
+    with col_sidebar_info:
+        st.subheader("⚙️ System Operations & Dynamic Decision Rules")
+
+        st.info(f"""
+        **AFOCC Dynamic Agronomic Decision Rules:**
+        - 💧 **{field_a.name} ({field_a.crop} / {field_a.soil_type}):** Irrigate if Moisture < **{field_a.optimal_moisture_threshold_pct}%** (FC: {field_a.field_capacity_pct}%, PWP: {field_a.wilting_point_pct}%)
+        - 💧 **{field_b.name} ({field_b.crop} / {field_b.soil_type}):** Irrigate if Moisture < **{field_b.optimal_moisture_threshold_pct}%** (FC: {field_b.field_capacity_pct}%, PWP: {field_b.wilting_point_pct}%)
+        - 🛢 **Minimum Water Reserve:** > 20% (Safety Gate Blocked if ≤ 10%)
+        - 🌧 **Rainfall Forecast Threshold:** < 60% Rain Prob
+        
+        *Irrigation decisions automatically adapt to soil type, crop, & growth stage.*
+        """)
+
+        # --- SIMULATED SENSOR OVERRIDE CONTROLS ---
+        st.markdown("### 🎛 Simulated Sensor Overrides")
+        st.caption("Adjust simulated sensors to test Safety Layer constraint blocks.")
+
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # Tank Level Slider
+        cursor.execute("SELECT current_level_pct FROM water_tank WHERE farm_id = 1;")
+        curr_tank = cursor.fetchone()["current_level_pct"]
+        new_tank = st.slider("Water Tank Level (%)", 0.0, 100.0, float(curr_tank), step=5.0)
+
+        # Soil Moisture Slider Field A
+        cursor.execute("SELECT soil_moisture_pct FROM fields WHERE LOWER(name) = 'field a';")
+        curr_soil_a = cursor.fetchone()["soil_moisture_pct"]
+        new_soil_a = st.slider("Field A Soil Moisture (%)", 0.0, 100.0, float(curr_soil_a), step=1.0)
+
+        if st.button("💾 Apply Sensor Overrides"):
+            cursor.execute("UPDATE water_tank SET current_level_pct = ? WHERE farm_id = 1;", (new_tank,))
+            cursor.execute("UPDATE fields SET soil_moisture_pct = ? WHERE LOWER(name) = 'field a';", (new_soil_a,))
+            conn.commit()
+            conn.close()
+            st.success("Simulated sensor state updated in SQLite DB!")
+            st.rerun()
+        else:
+            conn.close()
+
+
+# ==============================================================================
+# TAB 2: HISTORICAL IRRIGATION & WATER PUMPED ANALYTICS
+# ==============================================================================
+with tab_water:
+    st.subheader("📊 Past Irrigated Statuses & Water Consumption Analytics")
+    st.markdown("Detailed historical breakdown of irrigation pump cycles, water volumes extracted, and safety gate interventions.")
+
+    try:
+        conn = get_connection()
+        df_logs_all = pd.read_sql_query("SELECT * FROM operation_logs ORDER BY id DESC;", conn)
+        conn.close()
+
+        w_col1, w_col2, w_col3, w_col4 = st.columns(4)
+        total_ops = len(df_logs_all)
+        irrigation_ops = len(df_logs_all[df_logs_all['action'] == 'START_IRRIGATION'])
+        blocked_ops = len(df_logs_all[df_logs_all['status'] == 'BLOCKED'])
+        total_water_litres = irrigation_ops * 450.0  # 450L per cycle estimate
+
+        with w_col1:
+            st.metric("💧 Total Water Pumped", f"{total_water_litres:,.0f} Litres", delta="Estimated Cumulative Volume")
+        with w_col2:
+            st.metric("🔄 Active Irrigation Cycles", f"{irrigation_ops} Cycles", delta=f"{total_ops} Total Commands")
+        with w_col3:
+            st.metric("🛡️ Safety Interventions", f"{blocked_ops} Blocked", delta="Hazardous Over-irrigations Prevented")
+        with w_col4:
+            st.metric("🛢 Water Tank Reserve", f"{tank.current_level_pct}%", delta=f"{round((tank.current_level_pct/100)*tank.capacity_litres, 0)}L Available")
+
+        st.markdown("---")
+        st.markdown("#### 📉 Water Volume Pumped Trend Over Operations")
+        
+        # Water consumption timeline chart
+        if not df_logs_all.empty:
+            df_water = df_logs_all.copy()
+            df_water['Water_Pumped_L'] = df_water['action'].apply(lambda x: 450.0 if x == 'START_IRRIGATION' else 0.0)
+            df_water['Operation_Index'] = range(len(df_water), 0, -1)
+            st.bar_chart(df_water.set_index('Operation_Index')['Water_Pumped_L'], use_container_width=True)
+
+        st.markdown("#### 📋 Logged Past Irrigation Statuses & Pump Events")
+        if not df_logs_all.empty:
+            st.dataframe(
+                df_logs_all[['id', 'timestamp', 'farmer_command', 'action', 'status', 'details']],
+                column_config={
+                    "id": "Log ID",
+                    "timestamp": "Timestamp",
+                    "farmer_command": "Farmer Command",
+                    "action": "Action Code",
+                    "status": "Execution Status",
+                    "details": "Technical Details & Rationale"
+                },
+                use_container_width=True,
+                hide_index=True
+            )
+        else:
+            st.info("No past irrigation operations recorded yet.")
+
+    except Exception as e:
+        st.error(f"Failed to load historical water analytics: {e}")
+
+
+# ==============================================================================
+# TAB 3: AGRONOMIC & SOIL NPK HEALTH MONITOR
+# ==============================================================================
+with tab_agronomic:
+    st.subheader("🌾 Agronomic Soil Classification & NPK Health Monitor")
+    st.markdown("Field-by-field soil moisture, FAO-56 wilting point, field capacity, and nutrient adequacy metrics.")
+
+    a_col1, a_col2 = st.columns(2)
+    with a_col1:
+        st.markdown(f"### 📍 {field_a.name} Health Profile ({field_a.crop})")
+        st.write(f"- **Soil Classification:** {field_a.soil_type}")
+        st.write(f"- **Growth Stage:** {field_a.growth_stage}")
+        st.write(f"- **Current Soil Moisture:** **{field_a.soil_moisture_pct}%**")
+        st.write(f"- **FAO-56 Imputed Optimal Trigger:** **{field_a.optimal_moisture_threshold_pct}%**")
+        st.write(f"- **Field Capacity (FC):** {field_a.field_capacity_pct}% | **Wilting Point (PWP):** {field_a.wilting_point_pct}%")
+        st.write(f"- **Soil pH Level:** {field_a.ph_level}")
+        st.write(f"- **NPK Balance (N-P-K):** Nitrogen: {field_a.nitrogen_ppm} ppm, Phosphorus: {field_a.phosphorus_ppm} ppm, Potassium: {field_a.potassium_ppm} ppm")
+
+    with a_col2:
+        st.markdown(f"### 📍 {field_b.name} Health Profile ({field_b.crop})")
+        st.write(f"- **Soil Classification:** {field_b.soil_type}")
+        st.write(f"- **Growth Stage:** {field_b.growth_stage}")
+        st.write(f"- **Current Soil Moisture:** **{field_b.soil_moisture_pct}%**")
+        st.write(f"- **FAO-56 Imputed Optimal Trigger:** **{field_b.optimal_moisture_threshold_pct}%**")
+        st.write(f"- **Field Capacity (FC):** {field_b.field_capacity_pct}% | **Wilting Point (PWP):** {field_b.wilting_point_pct}%")
+        st.write(f"- **Soil pH Level:** {field_b.ph_level}")
+        st.write(f"- **NPK Balance (N-P-K):** Nitrogen: {field_b.nitrogen_ppm} ppm, Phosphorus: {field_b.phosphorus_ppm} ppm, Potassium: {field_b.potassium_ppm} ppm")
+
+    st.markdown("---")
+    st.markdown("#### 📊 Comparative Soil Moisture vs FAO-56 Imputed Threshold")
+    
+    chart_data = pd.DataFrame({
+        "Field": [field_a.name, field_b.name],
+        "Current Moisture (%)": [field_a.soil_moisture_pct, field_b.soil_moisture_pct],
+        "Optimal Imputed Threshold (%)": [field_a.optimal_moisture_threshold_pct, field_b.optimal_moisture_threshold_pct]
+    }).set_index("Field")
+    st.bar_chart(chart_data)
+
+
+# ==============================================================================
+# TAB 4: FARMER QUERIES & AI AUDIT TRAIL
+# ==============================================================================
+with tab_audit:
+    st.subheader("🤖 Farmer Queries & AI Agent Audit Trail")
+    st.markdown("Complete record of natural-language farmer prompts, detected intent classifications, tool execution outputs, and safety verification outcomes.")
+
+    try:
+        conn = get_connection()
+        df_audit = pd.read_sql_query("SELECT * FROM operation_logs ORDER BY id DESC;", conn)
+        conn.close()
+
+        if not df_audit.empty:
+            # Download CSV Button
+            csv = df_audit.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Download Complete Audit Logs (CSV)",
+                data=csv,
+                file_name="afocc_operation_audit_logs.csv",
+                mime="text/csv"
             )
 
-        # Clear pending action if user input was processed
-        st.session_state.pending_action = agent_res.get("pending_action")
+            st.markdown("#### 🔍 Searchable Operations & Queries Audit Table")
+            st.dataframe(
+                df_audit,
+                column_config={
+                    "id": "Log ID",
+                    "timestamp": "Timestamp",
+                    "farmer_command": "Farmer Prompt / Query",
+                    "detected_intent": "Intent Classified",
+                    "tool_called": "Tool Executed",
+                    "action": "Action Implemented",
+                    "status": "Status",
+                    "details": "Technical Rationale & Details"
+                },
+                use_container_width=True,
+                hide_index=True
+            )
+        else:
+            st.caption("No audit entries recorded yet.")
 
-        # Save assistant message
-        asst_msg = {
-            "role": "assistant",
-            "content": agent_res["response"],
-            "tools_called": agent_res.get("tools_called", []),
-            "status": agent_res.get("status")
-        }
-        st.session_state.messages.append(asst_msg)
+    except Exception as e:
+        st.error(f"Failed to load AI audit trail: {e}")
 
-        # Rerun to update UI
-        st.rerun()
-
-    # --- PENDING CONFIRMATION PROMPT DIALOGUE ---
-    if st.session_state.pending_action:
-        st.warning("⚠️ **SAFETY CONFIRMATION REQUIRED**")
-        p_action = st.session_state.pending_action
-        field = p_action.get("field_name")
-        act = p_action.get("action")
-
-        c_col1, c_col2 = st.columns(2)
-        with c_col1:
-            if st.button("✅ Confirm & Start Irrigation", type="primary"):
-                with st.spinner("Executing Safety & Automation Adapter..."):
-                    agent_res = default_agent.run_command(
-                        "Yes",
-                        pending_action=st.session_state.pending_action
-                    )
-                st.session_state.pending_action = None
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": agent_res["response"],
-                    "tools_called": agent_res.get("tools_called", [])
-                })
-                st.rerun()
-
-        with c_col2:
-            if st.button("❌ Cancel Operation"):
-                st.session_state.pending_action = None
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": "Operation cancelled by farmer.",
-                    "tools_called": []
-                })
-                st.rerun()
-
-with col_sidebar_info:
-    st.subheader("⚙️ System Operations & Dynamic Decision Rules")
-
-    st.info(f"""
-    **AFOCC Dynamic Agronomic Decision Rules:**
-    - 💧 **{field_a.name} ({field_a.crop} / {field_a.soil_type}):** Irrigate if Moisture < **{field_a.optimal_moisture_threshold_pct}%** (FC: {field_a.field_capacity_pct}%, PWP: {field_a.wilting_point_pct}%)
-    - 💧 **{field_b.name} ({field_b.crop} / {field_b.soil_type}):** Irrigate if Moisture < **{field_b.optimal_moisture_threshold_pct}%** (FC: {field_b.field_capacity_pct}%, PWP: {field_b.wilting_point_pct}%)
-    - 🛢 **Minimum Water Reserve:** > 20% (Safety Gate Blocked if ≤ 10%)
-    - 🌧 **Rainfall Forecast Threshold:** < 60% Rain Prob
-    
-    *Irrigation decisions automatically adapt to soil type, crop, & growth stage.*
-    """)
-
-
-    # --- SIMULATED SENSOR OVERRIDE CONTROLS ---
-    st.markdown("### 🎛 Simulated Sensor Overrides")
-    st.caption("Adjust simulated sensors to test Safety Layer constraint blocks.")
-
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    # Tank Level Slider
-    cursor.execute("SELECT current_level_pct FROM water_tank WHERE farm_id = 1;")
-    curr_tank = cursor.fetchone()["current_level_pct"]
-    new_tank = st.slider("Water Tank Level (%)", 0.0, 100.0, float(curr_tank), step=5.0)
-
-    # Soil Moisture Slider Field A
-    cursor.execute("SELECT soil_moisture_pct FROM fields WHERE LOWER(name) = 'field a';")
-    curr_soil_a = cursor.fetchone()["soil_moisture_pct"]
-    new_soil_a = st.slider("Field A Soil Moisture (%)", 0.0, 100.0, float(curr_soil_a), step=1.0)
-
-    if st.button("💾 Apply Sensor Overrides"):
-        cursor.execute("UPDATE water_tank SET current_level_pct = ? WHERE farm_id = 1;", (new_tank,))
-        cursor.execute("UPDATE fields SET soil_moisture_pct = ? WHERE LOWER(name) = 'field a';", (new_soil_a,))
-        conn.commit()
-        conn.close()
-        st.success("Simulated sensor state updated in SQLite DB!")
-        st.rerun()
-    else:
-        conn.close()
-
-# --- BOTTOM SECTION: REAL-TIME AUDIT LOGS TABLE ---
-st.markdown("---")
-st.subheader("📋 Real-Time Operation Audit Logs")
-
-try:
-    conn = get_connection()
-    df_logs = pd.read_sql_query("SELECT id, timestamp, farmer_command, tool_called, action, status, details FROM operation_logs ORDER BY id DESC LIMIT 15;", conn)
-    conn.close()
-
-    if not df_logs.empty:
-        st.dataframe(
-            df_logs,
-            column_config={
-                "id": "Log ID",
-                "timestamp": "Timestamp",
-                "farmer_command": "Farmer Command",
-                "tool_called": "Tool Executed",
-                "action": "Action",
-                "status": "Status",
-                "details": "Details & Rationale"
-            },
-            use_container_width=True,
-            hide_index=True
-        )
-    else:
-        st.caption("No operations logged yet.")
-
-except Exception as e:
-    st.error(f"Failed to load audit logs: {e}")
