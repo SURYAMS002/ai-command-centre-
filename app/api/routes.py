@@ -45,6 +45,70 @@ async def update_agronomic_profile_endpoint(payload: AgronomicUpdateRequestModel
     )
 
 
+class SensorTelemetryModel(BaseModel):
+    soil_moisture_pct: Optional[float] = None
+    water_tank_level_pct: Optional[float] = None
+    water_tank_distance_cm: Optional[float] = None
+    temperature_c: Optional[float] = None
+    humidity_pct: Optional[float] = None
+    relay_status: Optional[str] = None
+    field_name: Optional[str] = "Field A"
+
+@router.post("/api/v1/sensors/telemetry")
+async def ingest_hardware_telemetry(payload: SensorTelemetryModel):
+    try:
+        from datetime import datetime
+        now = datetime.now().isoformat()
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # Update Soil Moisture for target field
+        if payload.soil_moisture_pct is not None:
+            cursor.execute(
+                "UPDATE fields SET soil_moisture_pct = ?, updated_at = ? WHERE LOWER(name) = LOWER(?);",
+                (payload.soil_moisture_pct, now, payload.field_name or "Field A")
+            )
+
+        # Update Water Tank level and pump relay status
+        if payload.water_tank_level_pct is not None or payload.relay_status is not None:
+            if payload.water_tank_level_pct is not None and payload.relay_status is not None:
+                cursor.execute(
+                    "UPDATE water_tank SET current_level_pct = ?, pump_status = ?, updated_at = ? WHERE farm_id = 1;",
+                    (payload.water_tank_level_pct, payload.relay_status, now)
+                )
+            elif payload.water_tank_level_pct is not None:
+                cursor.execute(
+                    "UPDATE water_tank SET current_level_pct = ?, updated_at = ? WHERE farm_id = 1;",
+                    (payload.water_tank_level_pct, now)
+                )
+            elif payload.relay_status is not None:
+                cursor.execute(
+                    "UPDATE water_tank SET pump_status = ?, updated_at = ? WHERE farm_id = 1;",
+                    (payload.relay_status, now)
+                )
+
+        # Update Microclimate Weather (DHT11/22)
+        if payload.temperature_c is not None and payload.humidity_pct is not None:
+            cursor.execute(
+                "UPDATE weather SET temperature_c = ?, humidity_pct = ?, updated_at = ? WHERE farm_id = 1;",
+                (payload.temperature_c, payload.humidity_pct, now)
+            )
+
+        conn.commit()
+        conn.close()
+        return {
+            "status": "success",
+            "message": "ESP32 hardware telemetry ingested successfully",
+            "field_name": payload.field_name or "Field A",
+            "ingested_data": payload.model_dump(exclude_none=True),
+            "timestamp": now
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Telemetry ingestion failed: {str(e)}"
+        )
+
 
 @router.get("/api/health")
 async def health_check():
