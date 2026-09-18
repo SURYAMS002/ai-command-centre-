@@ -68,68 +68,80 @@ st.markdown("<div class='main-header'>🌾 AI FARM OPERATIONS COMMAND CENTER (AF
 st.markdown("<div class='sub-header'>Natural-Language Operational Control, Rule-Based Reasoning, Safety Validation & Automation</div>", unsafe_allow_html=True)
 
 # --- LIVE FARM TELEMETRY DASHBOARD ---
+@st.fragment(run_every=3)
+def render_live_telemetry_cards():
+    try:
+        farm_status = get_farm_status_data()
+        farm = farm_status.farm
+        tank = farm_status.water_tank
+        fields = farm_status.fields
+        weather = farm_status.weather
+
+        field_a = next((f for f in fields if f.name == "Field A"), fields[0])
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.metric(
+                label="🛢 Water Tank (HC-SR04 Sensor)",
+                value=f"{tank.current_level_pct}%",
+                delta=f"Vol: {round((tank.current_level_pct/100)*tank.capacity_litres, 0)}L / {tank.capacity_litres}L"
+            )
+            pump_color = "🟢 MOTOR RUNNING" if tank.pump_status == "ON" else "🔴 MOTOR STOPPED"
+            st.caption(f"Pump Relay Status: **{pump_color}**")
+
+        with col2:
+            st.metric(
+                label=f"🌱 Real Hardware Soil Field ({field_a.crop})",
+                value=f"{field_a.soil_moisture_pct}%",
+                delta=f"Optimal Target: {field_a.optimal_moisture_threshold_pct}% ({field_a.soil_type} Soil)"
+            )
+            status_a = "🟢 Irrigation ON" if field_a.irrigation_status == "ON" else "⚪ Irrigation OFF"
+            st.caption(f"Status: **{status_a}** | Stage: {field_a.growth_stage}")
+
+        with col3:
+            st.metric(
+                label="☀️ Microclimate (DHT22 Sensor)",
+                value=f"{weather.temperature_c}°C",
+                delta=f"Rain Prob: {weather.rain_probability_pct}%"
+            )
+            st.caption(f"Humidity: {weather.humidity_pct}% | Sector: {farm.location}")
+
+    except Exception as e:
+        st.error(f"Failed to load live farm telemetry: {e}")
+
+render_live_telemetry_cards()
+
+# Load latest status for below controls
 try:
     farm_status = get_farm_status_data()
-    farm = farm_status.farm
+    field_a = next((f for f in farm_status.fields if f.name == "Field A"), farm_status.fields[0])
     tank = farm_status.water_tank
-    fields = farm_status.fields
-    weather = farm_status.weather
+except Exception:
+    pass
 
-    field_a = next((f for f in fields if f.name == "Field A"), fields[0])
+# --- AGRONOMIC SOIL-CROP PARAMETER IMPUTATION PANEL ---
+with st.expander("🌾 Dynamic Soil-Crop Agronomic Parameter Imputation Panel (Review 2 Feedback)", expanded=True):
+    st.markdown("##### Dynamic FAO-56 Soil Classification & Crop Stage Imputation")
 
-    col1, col2, col3 = st.columns(3)
+    from app.tools.agronomic_tools import update_field_agronomic_profile
 
-    with col1:
-        st.metric(
-            label="🛢 Water Tank (HC-SR04 Sensor)",
-            value=f"{tank.current_level_pct}%",
-            delta=f"Vol: {round((tank.current_level_pct/100)*tank.capacity_litres, 0)}L / {tank.capacity_litres}L"
-        )
-        pump_color = "🟢 MOTOR RUNNING" if tank.pump_status == "ON" else "🔴 MOTOR STOPPED"
-        st.caption(f"Pump Relay Status: **{pump_color}**")
+    st.markdown(f"**{field_a.name} Profile Configuration:**")
+    ag_col1, ag_col2, ag_col3 = st.columns(3)
 
-    with col2:
-        st.metric(
-            label=f"🌱 Real Hardware Soil Field ({field_a.crop})",
-            value=f"{field_a.soil_moisture_pct}%",
-            delta=f"Optimal Target: {field_a.optimal_moisture_threshold_pct}% ({field_a.soil_type} Soil)"
-        )
-        status_a = "🟢 Irrigation ON" if field_a.irrigation_status == "ON" else "⚪ Irrigation OFF"
-        st.caption(f"Status: **{status_a}** | Stage: {field_a.growth_stage}")
+    with ag_col1:
+        a_soil = st.selectbox("Soil Type", ["Loamy", "Clay", "Sandy", "Silt", "Peat", "Saline"], index=["Loamy", "Clay", "Sandy", "Silt", "Peat", "Saline"].index(field_a.soil_type) if field_a.soil_type in ["Loamy", "Clay", "Sandy", "Silt", "Peat", "Saline"] else 0, key="a_soil")
+    with ag_col2:
+        a_crop = st.selectbox("Crop Type", ["Tomato", "Wheat", "Rice", "Cotton", "Maize", "Sugarcane"], index=["Tomato", "Wheat", "Rice", "Cotton", "Maize", "Sugarcane"].index(field_a.crop) if field_a.crop in ["Tomato", "Wheat", "Rice", "Cotton", "Maize", "Sugarcane"] else 0, key="a_crop")
+    with ag_col3:
+        a_stage = st.selectbox("Growth Stage", ["Initial/Vegetative", "Flowering", "Yield Formation", "Maturity"], index=["Initial/Vegetative", "Flowering", "Yield Formation", "Maturity"].index(field_a.growth_stage) if field_a.growth_stage in ["Initial/Vegetative", "Flowering", "Yield Formation", "Maturity"] else 1, key="a_stage")
 
-    with col3:
-        st.metric(
-            label="☀️ Microclimate (DHT22 Sensor)",
-            value=f"{weather.temperature_c}°C",
-            delta=f"Rain Prob: {weather.rain_probability_pct}%"
-        )
-        st.caption(f"Humidity: {weather.humidity_pct}% | Sector: {farm.location}")
+    if (a_soil != field_a.soil_type) or (a_crop != field_a.crop) or (a_stage != field_a.growth_stage):
+        update_field_agronomic_profile(field_a.name, soil_type=a_soil, crop=a_crop, growth_stage=a_stage)
+        st.success(f"Imputed new dynamic FAO-56 parameters for {field_a.name}!")
+        st.rerun()
 
-    # --- AGRONOMIC SOIL-CROP PARAMETER IMPUTATION PANEL ---
-    with st.expander("🌾 Dynamic Soil-Crop Agronomic Parameter Imputation Panel (Review 2 Feedback)", expanded=True):
-        st.markdown("##### Dynamic FAO-56 Soil Classification & Crop Stage Imputation")
-
-        from app.tools.agronomic_tools import update_field_agronomic_profile
-
-        st.markdown(f"**{field_a.name} Profile Configuration:**")
-        ag_col1, ag_col2, ag_col3 = st.columns(3)
-
-        with ag_col1:
-            a_soil = st.selectbox("Soil Type", ["Loamy", "Clay", "Sandy", "Silt", "Peat", "Saline"], index=["Loamy", "Clay", "Sandy", "Silt", "Peat", "Saline"].index(field_a.soil_type) if field_a.soil_type in ["Loamy", "Clay", "Sandy", "Silt", "Peat", "Saline"] else 0, key="a_soil")
-        with ag_col2:
-            a_crop = st.selectbox("Crop Type", ["Tomato", "Wheat", "Rice", "Cotton", "Maize", "Sugarcane"], index=["Tomato", "Wheat", "Rice", "Cotton", "Maize", "Sugarcane"].index(field_a.crop) if field_a.crop in ["Tomato", "Wheat", "Rice", "Cotton", "Maize", "Sugarcane"] else 0, key="a_crop")
-        with ag_col3:
-            a_stage = st.selectbox("Growth Stage", ["Initial/Vegetative", "Flowering", "Yield Formation", "Maturity"], index=["Initial/Vegetative", "Flowering", "Yield Formation", "Maturity"].index(field_a.growth_stage) if field_a.growth_stage in ["Initial/Vegetative", "Flowering", "Yield Formation", "Maturity"] else 1, key="a_stage")
-
-        if (a_soil != field_a.soil_type) or (a_crop != field_a.crop) or (a_stage != field_a.growth_stage):
-            update_field_agronomic_profile(field_a.name, soil_type=a_soil, crop=a_crop, growth_stage=a_stage)
-            st.success(f"Imputed new dynamic FAO-56 parameters for {field_a.name}!")
-            st.rerun()
-
-        st.info(f"**Imputed Thresholds:** Wilting Point: **{field_a.wilting_point_pct}%** | Field Capacity: **{field_a.field_capacity_pct}%** | Optimal Target Trigger: **{field_a.optimal_moisture_threshold_pct}%**")
-
-except Exception as e:
-    st.error(f"Failed to load live farm telemetry: {e}")
+    st.info(f"**Imputed Thresholds:** Wilting Point: **{field_a.wilting_point_pct}%** | Field Capacity: **{field_a.field_capacity_pct}%** | Optimal Target Trigger: **{field_a.optimal_moisture_threshold_pct}%**")
 
 st.markdown("---")
 
