@@ -76,40 +76,30 @@ try:
     weather = farm_status.weather
 
     field_a = next((f for f in fields if f.name == "Field A"), fields[0])
-    field_b = next((f for f in fields if f.name == "Field B"), fields[1] if len(fields) > 1 else fields[0])
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3 = st.columns(3)
 
     with col1:
         st.metric(
-            label="🛢 Water Tank",
+            label="🛢 Water Tank (HC-SR04 Sensor)",
             value=f"{tank.current_level_pct}%",
             delta=f"Vol: {round((tank.current_level_pct/100)*tank.capacity_litres, 0)}L / {tank.capacity_litres}L"
         )
-        pump_color = "🟢 ON" if tank.pump_status == "ON" else "🔴 OFF"
-        st.caption(f"Pump Status: **{pump_color}**")
+        pump_color = "🟢 MOTOR RUNNING" if tank.pump_status == "ON" else "🔴 MOTOR STOPPED"
+        st.caption(f"Pump Relay Status: **{pump_color}**")
 
     with col2:
         st.metric(
-            label=f"🌱 {field_a.name} ({field_a.crop})",
+            label=f"🌱 Real Hardware Soil Field ({field_a.crop})",
             value=f"{field_a.soil_moisture_pct}%",
-            delta=f"Thresh: {field_a.optimal_moisture_threshold_pct}% ({field_a.soil_type} Soil)"
+            delta=f"Optimal Target: {field_a.optimal_moisture_threshold_pct}% ({field_a.soil_type} Soil)"
         )
         status_a = "🟢 Irrigation ON" if field_a.irrigation_status == "ON" else "⚪ Irrigation OFF"
         st.caption(f"Status: **{status_a}** | Stage: {field_a.growth_stage}")
 
     with col3:
         st.metric(
-            label=f"🌾 {field_b.name} ({field_b.crop})",
-            value=f"{field_b.soil_moisture_pct}%",
-            delta=f"Thresh: {field_b.optimal_moisture_threshold_pct}% ({field_b.soil_type} Soil)"
-        )
-        status_b = "🟢 Irrigation ON" if field_b.irrigation_status == "ON" else "⚪ Irrigation OFF"
-        st.caption(f"Status: **{status_b}** | Stage: {field_b.growth_stage}")
-
-    with col4:
-        st.metric(
-            label="☀️ Weather Forecast",
+            label="☀️ Microclimate (DHT22 Sensor)",
             value=f"{weather.temperature_c}°C",
             delta=f"Rain Prob: {weather.rain_probability_pct}%"
         )
@@ -118,35 +108,25 @@ try:
     # --- AGRONOMIC SOIL-CROP PARAMETER IMPUTATION PANEL ---
     with st.expander("🌾 Dynamic Soil-Crop Agronomic Parameter Imputation Panel (Review 2 Feedback)", expanded=True):
         st.markdown("##### Dynamic FAO-56 Soil Classification & Crop Stage Imputation")
-        ag_col1, ag_col2 = st.columns(2)
 
         from app.tools.agronomic_tools import update_field_agronomic_profile
 
+        st.markdown(f"**{field_a.name} Profile Configuration:**")
+        ag_col1, ag_col2, ag_col3 = st.columns(3)
+
         with ag_col1:
-            st.markdown(f"**{field_a.name} Profile Configuration:**")
-            a_soil = st.selectbox("Soil Type (Field A)", ["Loamy", "Clay", "Sandy", "Silt", "Peat", "Saline"], index=["Loamy", "Clay", "Sandy", "Silt", "Peat", "Saline"].index(field_a.soil_type) if field_a.soil_type in ["Loamy", "Clay", "Sandy", "Silt", "Peat", "Saline"] else 0, key="a_soil")
-            a_crop = st.selectbox("Crop Type (Field A)", ["Tomato", "Wheat", "Rice", "Cotton", "Maize", "Sugarcane"], index=["Tomato", "Wheat", "Rice", "Cotton", "Maize", "Sugarcane"].index(field_a.crop) if field_a.crop in ["Tomato", "Wheat", "Rice", "Cotton", "Maize", "Sugarcane"] else 0, key="a_crop")
-            a_stage = st.selectbox("Growth Stage (Field A)", ["Initial/Vegetative", "Flowering", "Yield Formation", "Maturity"], index=["Initial/Vegetative", "Flowering", "Yield Formation", "Maturity"].index(field_a.growth_stage) if field_a.growth_stage in ["Initial/Vegetative", "Flowering", "Yield Formation", "Maturity"] else 1, key="a_stage")
-
-            if (a_soil != field_a.soil_type) or (a_crop != field_a.crop) or (a_stage != field_a.growth_stage):
-                update_field_agronomic_profile(field_a.name, soil_type=a_soil, crop=a_crop, growth_stage=a_stage)
-                st.success(f"Imputed new dynamic parameters for {field_a.name}!")
-                st.rerun()
-
-            st.info(f"**Imputed Thresholds:** Wilting Point {field_a.wilting_point_pct}% | Field Capacity {field_a.field_capacity_pct}% | Optimal Trigger: **{field_a.optimal_moisture_threshold_pct}%**")
-
+            a_soil = st.selectbox("Soil Type", ["Loamy", "Clay", "Sandy", "Silt", "Peat", "Saline"], index=["Loamy", "Clay", "Sandy", "Silt", "Peat", "Saline"].index(field_a.soil_type) if field_a.soil_type in ["Loamy", "Clay", "Sandy", "Silt", "Peat", "Saline"] else 0, key="a_soil")
         with ag_col2:
-            st.markdown(f"**{field_b.name} Profile Configuration:**")
-            b_soil = st.selectbox("Soil Type (Field B)", ["Loamy", "Clay", "Sandy", "Silt", "Peat", "Saline"], index=["Loamy", "Clay", "Sandy", "Silt", "Peat", "Saline"].index(field_b.soil_type) if field_b.soil_type in ["Loamy", "Clay", "Sandy", "Silt", "Peat", "Saline"] else 1, key="b_soil")
-            b_crop = st.selectbox("Crop Type (Field B)", ["Tomato", "Wheat", "Rice", "Cotton", "Maize", "Sugarcane"], index=["Tomato", "Wheat", "Rice", "Cotton", "Maize", "Sugarcane"].index(field_b.crop) if field_b.crop in ["Tomato", "Wheat", "Rice", "Cotton", "Maize", "Sugarcane"] else 2, key="b_crop")
-            b_stage = st.selectbox("Growth Stage (Field B)", ["Initial/Vegetative", "Flowering", "Yield Formation", "Maturity"], index=["Initial/Vegetative", "Flowering", "Yield Formation", "Maturity"].index(field_b.growth_stage) if field_b.growth_stage in ["Initial/Vegetative", "Flowering", "Yield Formation", "Maturity"] else 0, key="b_stage")
+            a_crop = st.selectbox("Crop Type", ["Tomato", "Wheat", "Rice", "Cotton", "Maize", "Sugarcane"], index=["Tomato", "Wheat", "Rice", "Cotton", "Maize", "Sugarcane"].index(field_a.crop) if field_a.crop in ["Tomato", "Wheat", "Rice", "Cotton", "Maize", "Sugarcane"] else 0, key="a_crop")
+        with ag_col3:
+            a_stage = st.selectbox("Growth Stage", ["Initial/Vegetative", "Flowering", "Yield Formation", "Maturity"], index=["Initial/Vegetative", "Flowering", "Yield Formation", "Maturity"].index(field_a.growth_stage) if field_a.growth_stage in ["Initial/Vegetative", "Flowering", "Yield Formation", "Maturity"] else 1, key="a_stage")
 
-            if (b_soil != field_b.soil_type) or (b_crop != field_b.crop) or (b_stage != field_b.growth_stage):
-                update_field_agronomic_profile(field_b.name, soil_type=b_soil, crop=b_crop, growth_stage=b_stage)
-                st.success(f"Imputed new dynamic parameters for {field_b.name}!")
-                st.rerun()
+        if (a_soil != field_a.soil_type) or (a_crop != field_a.crop) or (a_stage != field_a.growth_stage):
+            update_field_agronomic_profile(field_a.name, soil_type=a_soil, crop=a_crop, growth_stage=a_stage)
+            st.success(f"Imputed new dynamic FAO-56 parameters for {field_a.name}!")
+            st.rerun()
 
-            st.info(f"**Imputed Thresholds:** Wilting Point {field_b.wilting_point_pct}% | Field Capacity {field_b.field_capacity_pct}% | Optimal Trigger: **{field_b.optimal_moisture_threshold_pct}%**")
+        st.info(f"**Imputed Thresholds:** Wilting Point: **{field_a.wilting_point_pct}%** | Field Capacity: **{field_a.field_capacity_pct}%** | Optimal Target Trigger: **{field_a.optimal_moisture_threshold_pct}%**")
 
 except Exception as e:
     st.error(f"Failed to load live farm telemetry: {e}")
@@ -182,7 +162,7 @@ with tab_cmd:
             if st.button("❓ Should Irrigate Field A?"):
                 quick_cmd = "Should I irrigate Field A?"
         with q_col3:
-            if st.button("🚰 Irrigate Field A"):
+            if st.button("🚰 Start Irrigation"):
                 quick_cmd = "Irrigate Field A."
         with q_col4:
             if st.button("⏹ Stop Irrigation"):
@@ -198,7 +178,7 @@ with tab_cmd:
                             st.json(t)
 
         # Process Input from Chat Input or Quick Command
-        user_input = st.chat_input("Enter farm command (e.g., 'Check water tank', 'Irrigate Field A')...")
+        user_input = st.chat_input("Enter farm command (e.g., 'Check water tank', 'Start irrigation')...")
         command_to_process = user_input or quick_cmd
 
         if command_to_process:
@@ -263,44 +243,16 @@ with tab_cmd:
                     st.rerun()
 
     with col_sidebar_info:
-        st.subheader("⚙️ System Operations & Dynamic Decision Rules")
+        st.subheader("⚙️ Real-Time System Operations & Decision Rules")
 
         st.info(f"""
         **AFOCC Dynamic Agronomic Decision Rules:**
         - 💧 **{field_a.name} ({field_a.crop} / {field_a.soil_type}):** Irrigate if Moisture < **{field_a.optimal_moisture_threshold_pct}%** (FC: {field_a.field_capacity_pct}%, PWP: {field_a.wilting_point_pct}%)
-        - 💧 **{field_b.name} ({field_b.crop} / {field_b.soil_type}):** Irrigate if Moisture < **{field_b.optimal_moisture_threshold_pct}%** (FC: {field_b.field_capacity_pct}%, PWP: {field_b.wilting_point_pct}%)
-        - 🛢 **Minimum Water Reserve:** > 20% (Safety Gate Blocked if ≤ 10%)
+        - 🛢 **Minimum Water Reserve:** > 10% (Safety Gate Blocked if ≤ 10%)
         - 🌧 **Rainfall Forecast Threshold:** < 60% Rain Prob
         
-        *Irrigation decisions automatically adapt to soil type, crop, & growth stage.*
+        *Irrigation auto-starts when moisture < threshold and auto-stops when target is reached.*
         """)
-
-        # --- SIMULATED SENSOR OVERRIDE CONTROLS ---
-        st.markdown("### 🎛 Simulated Sensor Overrides")
-        st.caption("Adjust simulated sensors to test Safety Layer constraint blocks.")
-
-        conn = get_connection()
-        cursor = conn.cursor()
-
-        # Tank Level Slider
-        cursor.execute("SELECT current_level_pct FROM water_tank WHERE farm_id = 1;")
-        curr_tank = cursor.fetchone()["current_level_pct"]
-        new_tank = st.slider("Water Tank Level (%)", 0.0, 100.0, float(curr_tank), step=5.0)
-
-        # Soil Moisture Slider Field A
-        cursor.execute("SELECT soil_moisture_pct FROM fields WHERE LOWER(name) = 'field a';")
-        curr_soil_a = cursor.fetchone()["soil_moisture_pct"]
-        new_soil_a = st.slider("Field A Soil Moisture (%)", 0.0, 100.0, float(curr_soil_a), step=1.0)
-
-        if st.button("💾 Apply Sensor Overrides"):
-            cursor.execute("UPDATE water_tank SET current_level_pct = ? WHERE farm_id = 1;", (new_tank,))
-            cursor.execute("UPDATE fields SET soil_moisture_pct = ? WHERE LOWER(name) = 'field a';", (new_soil_a,))
-            conn.commit()
-            conn.close()
-            st.success("Simulated sensor state updated in SQLite DB!")
-            st.rerun()
-        else:
-            conn.close()
 
 
 # ==============================================================================
@@ -367,38 +319,26 @@ with tab_water:
 # ==============================================================================
 with tab_agronomic:
     st.subheader("🌾 Agronomic Soil Classification & NPK Health Monitor")
-    st.markdown("Field-by-field soil moisture, FAO-56 wilting point, field capacity, and nutrient adequacy metrics.")
+    st.markdown("Real hardware field soil moisture, FAO-56 wilting point, field capacity, and nutrient adequacy metrics.")
 
-    a_col1, a_col2 = st.columns(2)
+    a_col1, a_col2 = st.columns([2, 1])
     with a_col1:
-        st.markdown(f"### 📍 {field_a.name} Health Profile ({field_a.crop})")
+        st.markdown(f"### 📍 Real Hardware Field Health Profile ({field_a.crop})")
         st.write(f"- **Soil Classification:** {field_a.soil_type}")
         st.write(f"- **Growth Stage:** {field_a.growth_stage}")
-        st.write(f"- **Current Soil Moisture:** **{field_a.soil_moisture_pct}%**")
-        st.write(f"- **FAO-56 Imputed Optimal Trigger:** **{field_a.optimal_moisture_threshold_pct}%**")
+        st.write(f"- **Current Real-Time Soil Moisture:** **{field_a.soil_moisture_pct}%**")
+        st.write(f"- **FAO-56 Imputed Optimal Target:** **{field_a.optimal_moisture_threshold_pct}%**")
         st.write(f"- **Field Capacity (FC):** {field_a.field_capacity_pct}% | **Wilting Point (PWP):** {field_a.wilting_point_pct}%")
         st.write(f"- **Soil pH Level:** {field_a.ph_level}")
         st.write(f"- **NPK Balance (N-P-K):** Nitrogen: {field_a.nitrogen_ppm} ppm, Phosphorus: {field_a.phosphorus_ppm} ppm, Potassium: {field_a.potassium_ppm} ppm")
 
     with a_col2:
-        st.markdown(f"### 📍 {field_b.name} Health Profile ({field_b.crop})")
-        st.write(f"- **Soil Classification:** {field_b.soil_type}")
-        st.write(f"- **Growth Stage:** {field_b.growth_stage}")
-        st.write(f"- **Current Soil Moisture:** **{field_b.soil_moisture_pct}%**")
-        st.write(f"- **FAO-56 Imputed Optimal Trigger:** **{field_b.optimal_moisture_threshold_pct}%**")
-        st.write(f"- **Field Capacity (FC):** {field_b.field_capacity_pct}% | **Wilting Point (PWP):** {field_b.wilting_point_pct}%")
-        st.write(f"- **Soil pH Level:** {field_b.ph_level}")
-        st.write(f"- **NPK Balance (N-P-K):** Nitrogen: {field_b.nitrogen_ppm} ppm, Phosphorus: {field_b.phosphorus_ppm} ppm, Potassium: {field_b.potassium_ppm} ppm")
-
-    st.markdown("---")
-    st.markdown("#### 📊 Comparative Soil Moisture vs FAO-56 Imputed Threshold")
-    
-    chart_data = pd.DataFrame({
-        "Field": [field_a.name, field_b.name],
-        "Current Moisture (%)": [field_a.soil_moisture_pct, field_b.soil_moisture_pct],
-        "Optimal Imputed Threshold (%)": [field_a.optimal_moisture_threshold_pct, field_b.optimal_moisture_threshold_pct]
-    }).set_index("Field")
-    st.bar_chart(chart_data)
+        st.markdown("#### 📊 Moisture vs FAO-56 Threshold")
+        chart_data = pd.DataFrame({
+            "Metric": ["Current Moisture (%)", "Optimal Target (%)", "Field Capacity (%)"],
+            "Value": [field_a.soil_moisture_pct, field_a.optimal_moisture_threshold_pct, field_a.field_capacity_pct]
+        }).set_index("Metric")
+        st.bar_chart(chart_data)
 
 
 # ==============================================================================
