@@ -17,6 +17,7 @@
 
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 #include <ArduinoJson.h> // Compatible with ArduinoJson v7.4.3
 #include <DHT.h>
 
@@ -24,8 +25,8 @@
 const char* WIFI_SSID     = "Surya";        // Your Wi-Fi Name
 const char* WIFI_PASSWORD = "Suryaaaa";    // Your Wi-Fi Password
 
-// Laptop local IPv4 address (from ipconfig)
-const char* SERVER_URL    = "http://10.118.4.9:8000/api/v1/sensors/telemetry";
+// Live Vercel Cloud Telemetry Endpoint (Streams to live web app on the internet)
+const char* SERVER_URL    = "https://ai-command-centre-orpin.vercel.app/api/v1/sensors/telemetry";
 
 // --- PIN DEFINITIONS ---
 #define DHT_PIN           4   // Digital Pin (DHT11/DHT22)
@@ -123,8 +124,11 @@ void sendTelemetryToServer(float soilPct, float tankPct, float distCm, float tem
     return;
   }
 
+  WiFiClientSecure client;
+  client.setInsecure(); // Bypass SSL verification for HTTPS Vercel API
+
   HTTPClient http;
-  http.begin(SERVER_URL);
+  http.begin(client, SERVER_URL);
   http.addHeader("Content-Type", "application/json");
 
   // Create JSON Payload (ArduinoJson v7.4.3 syntax)
