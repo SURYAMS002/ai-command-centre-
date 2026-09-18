@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" version="21.6.8" type="device">
+  <diagram id="wf_diag" name="AFOCC Workflow Sequence">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="950" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" value="&lt;b&gt;Step 1: Farmer Command&lt;/b&gt;&lt;br/&gt;&lt;font size='2'&gt;Types 'Irrigate Field A' into Streamlit Chat Console&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E5631;strokeColor=#000000;fontColor=#FFFFFF;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="100" y="60" width="700" height="60" as_="geometry" />
+        </mxCell>
+        <mxCell id="3" value="&lt;b&gt;Step 2: AI Agent Tool Calling&lt;/b&gt;&lt;br/&gt;&lt;font size='2'&gt;Agent parses intent &amp; dispatches get_soil_moisture('Field A')&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F4C81;strokeColor=#000000;fontColor=#FFFFFF;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="100" y="160" width="700" height="60" as_="geometry" />
+        </mxCell>
+        <mxCell id="e_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0F4C81;" edge="1" parent="1" source="2" target="3">
+          <mxGeometry relative="1" as_="geometry" />
+        </mxCell>
+        <mxCell id="4" value="&lt;b&gt;Step 3: Multi-Source Data Fetch&lt;/b&gt;&lt;br/&gt;&lt;font size='2'&gt;Retrieves Soil (24%), Water Tank (40%), Rain Prob (15%)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E5631;strokeColor=#000000;fontColor=#FFFFFF;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="100" y="260" width="700" height="60" as_="geometry" />
+        </mxCell>
+        <mxCell id="e_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0F4C81;" edge="1" parent="1" source="3" target="4">
+          <mxGeometry relative="1" as_="geometry" />
+        </mxCell>
+        <mxCell id="5" value="&lt;b&gt;Step 4: Decision Check&lt;/b&gt;&lt;br/&gt;&lt;font size='2'&gt;Soil &lt; 30% AND Tank &gt; 20% AND Rain &lt; 60%?&lt;/font&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#D9822B;strokeColor=#000000;fontColor=#FFFFFF;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="200" y="360" width="500" height="80" as_="geometry" />
+        </mxCell>
+        <mxCell id="e_5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0F4C81;" edge="1" parent="1" source="4" target="5">
+          <mxGeometry relative="1" as_="geometry" />
+        </mxCell>
+        <mxCell id="6" value="&lt;b&gt;Step 5: Safety Gate Check&lt;/b&gt;&lt;br/&gt;&lt;font size='2'&gt;Is Water Tank Level &gt; 10%?&lt;/font&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#0F4C81;strokeColor=#000000;fontColor=#FFFFFF;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="200" y="480" width="500" height="80" as_="geometry" />
+        </mxCell>
+        <mxCell id="e_6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0F4C81;" edge="1" parent="1" source="5" target="6">
+          <mxGeometry relative="1" as_="geometry" />
+        </mxCell>
+        <mxCell id="7" value="&lt;b&gt;Step 6: Farmer Confirmation&lt;/b&gt;&lt;br/&gt;&lt;font size='2'&gt;Display modal: 'Field A moisture is 24%. Confirm start?'&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E5631;strokeColor=#000000;fontColor=#FFFFFF;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="100" y="600" width="700" height="60" as_="geometry" />
+        </mxCell>
+        <mxCell id="e_7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0F4C81;" edge="1" parent="1" source="6" target="7">
+          <mxGeometry relative="1" as_="geometry" />
+        </mxCell>
+        <mxCell id="8" value="&lt;b&gt;Step 7: Physical Actuation&lt;/b&gt;&lt;br/&gt;&lt;font size='2'&gt;Farmer clicks '✅ Confirm' -&gt; Relay switches Pump ON &amp; Logs Audit&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D9822B;strokeColor=#000000;fontColor=#FFFFFF;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="100" y="700" width="700" height="60" as_="geometry" />
+        </mxCell>
+        <mxCell id="e_8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0F4C81;" edge="1" parent="1" source="7" target="8">
+          <mxGeometry relative="1" as_="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

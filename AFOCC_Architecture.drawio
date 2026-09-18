@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" version="21.6.8" type="device">
+  <diagram id="arch_diag" name="AFOCC System Architecture">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" value="&lt;b&gt;Layer 1: Farmer Dashboard (Streamlit UI)&lt;/b&gt;&lt;br/&gt;&lt;font size='2'&gt;Natural Language Chat Console, Live Weather Cards, Telemetry Display&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E5631;strokeColor=#000000;fontColor=#FFFFFF;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="150" y="80" width="800" height="65" as_="geometry" />
+        </mxCell>
+        <mxCell id="3" value="&lt;b&gt;Layer 2: AI Agentic Orchestrator&lt;/b&gt;&lt;br/&gt;&lt;font size='2'&gt;OpenAI gpt-4o-mini Agent + Resilient Fallback Intent Router&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F4C81;strokeColor=#000000;fontColor=#FFFFFF;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="150" y="180" width="800" height="65" as_="geometry" />
+        </mxCell>
+        <mxCell id="e_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0F4C81;" edge="1" parent="1" source="2" target="3">
+          <mxGeometry relative="1" as_="geometry" />
+        </mxCell>
+        <mxCell id="4" value="&lt;b&gt;Layer 3: Modular Farm Tools Suite&lt;/b&gt;&lt;br/&gt;&lt;font size='2'&gt;water.py | soil.py | weather.py (Live OpenWeather API) | farm_status.py&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E5631;strokeColor=#000000;fontColor=#FFFFFF;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="150" y="280" width="800" height="65" as_="geometry" />
+        </mxCell>
+        <mxCell id="e_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0F4C81;" edge="1" parent="1" source="3" target="4">
+          <mxGeometry relative="1" as_="geometry" />
+        </mxCell>
+        <mxCell id="5" value="&lt;b&gt;Layer 4: State &amp; Decision Engine&lt;/b&gt;&lt;br/&gt;&lt;font size='2'&gt;SQLite afocc.db + Threshold Rule Engine (Soil &lt;30%, Tank &gt;20%, Rain &lt;60%)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D9822B;strokeColor=#000000;fontColor=#FFFFFF;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="150" y="380" width="800" height="65" as_="geometry" />
+        </mxCell>
+        <mxCell id="e_5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0F4C81;" edge="1" parent="1" source="4" target="5">
+          <mxGeometry relative="1" as_="geometry" />
+        </mxCell>
+        <mxCell id="6" value="&lt;b&gt;Layer 5: Safety Validation Gate&lt;/b&gt;&lt;br/&gt;&lt;font size='2'&gt;SafetyValidator (Checks Field Existence, Tank Reserve &lt;=10% Hazard Block)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F4C81;strokeColor=#000000;fontColor=#FFFFFF;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="150" y="480" width="800" height="65" as_="geometry" />
+        </mxCell>
+        <mxCell id="e_6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0F4C81;" edge="1" parent="1" source="5" target="6">
+          <mxGeometry relative="1" as_="geometry" />
+        </mxCell>
+        <mxCell id="7" value="&lt;b&gt;Layer 6: Hardware &amp; Actuator Layer&lt;/b&gt;&lt;br/&gt;&lt;font size='2'&gt;ESP32 Sensors | Xilinx FPGA Edge Controller | Solenoid Relay / Pump ON&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E5631;strokeColor=#000000;fontColor=#FFFFFF;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="150" y="580" width="800" height="65" as_="geometry" />
+        </mxCell>
+        <mxCell id="e_7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0F4C81;" edge="1" parent="1" source="6" target="7">
+          <mxGeometry relative="1" as_="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
