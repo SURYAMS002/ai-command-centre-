@@ -1,6 +1,6 @@
 /*
   =================================================================================
-  AFOCC - AI Farm Operations Command Center (Phase 2 Hardware Firmware)
+  AFOCC - AI Farm Operations Command Center (n8n Cloud AI Integration)
   Target Microcontroller: ESP32 Dev Module (NodeMCU ESP-WROOM-32)
   =================================================================================
   
@@ -8,25 +8,25 @@
   - DHT11 / DHT22 Temp & Humidity : Signal -> GPIO 4
   - Capacitive Soil Moisture v1.2 : Signal -> GPIO 15 (ADC)
   - HC-SR04 Ultrasonic Tank Sensor: Trig   -> GPIO 5, Echo -> GPIO 0
-  - 5V Relay Module (Pump Switch) : IN     -> GPIO 16
+  - 5V Relay Module (Pump Switch) : IN     -> GPIO 16 (Active LOW)
   
-  WiFi Telemetry:
-  - Sends HTTP POST JSON payload to: http://10.118.4.9:8000/api/v1/sensors/telemetry
+  Wi-Fi Telemetry Target:
+  - Live n8n Cloud Webhook: https://msuryamuthu.app.n8n.cloud/webhook/afocc-telemetry
   =================================================================================
 */
 
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
-#include <ArduinoJson.h> // Compatible with ArduinoJson v7.4.3
+#include <ArduinoJson.h> // Compatible with ArduinoJson v7.x
 #include <DHT.h>
 
 // --- Wi-Fi & SERVER CONFIGURATION ---
 const char* WIFI_SSID     = "Surya";        // Your Wi-Fi Name
 const char* WIFI_PASSWORD = "Suryaaaa";    // Your Wi-Fi Password
 
-// Live Vercel Cloud Telemetry Endpoint (Streams to live web app on the internet)
-const char* SERVER_URL    = "https://ai-command-centre-orpin.vercel.app/api/v1/sensors/telemetry";
+// Live n8n Cloud AI Telemetry & Downlink Webhook Endpoint
+const char* SERVER_URL    = "https://msuryamuthu.app.n8n.cloud/webhook/afocc-telemetry";
 
 // --- PIN DEFINITIONS ---
 #define DHT_PIN           4   // Digital Pin (DHT11/DHT22)
@@ -49,7 +49,7 @@ DHT dht(DHT_PIN, DHT_TYPE);
 void setup() {
   Serial.begin(115200);
   delay(1000);
-  Serial.println("\n--- Initializing AFOCC ESP32 Hardware Firmware ---");
+  Serial.println("\n--- Initializing AFOCC ESP32 Hardware Firmware (n8n Cloud) ---");
 
   // Pin Modes
   pinMode(ULTRASONIC_TRIG, OUTPUT);
@@ -100,7 +100,7 @@ float readWaterTankPercentage(float &distanceCm) {
 
   long durationMicroSec = pulseIn(ULTRASONIC_ECHO, HIGH, 30000); // 30ms timeout
   if (durationMicroSec == 0) {
-    distanceCm = 15.0; // Default fallback if no echo received on desk
+    distanceCm = 15.0; // Default fallback if no echo received
   } else {
     distanceCm = (durationMicroSec * 0.0343) / 2.0;
   }
@@ -118,20 +118,20 @@ float readWaterTankPercentage(float &distanceCm) {
   return pct;
 }
 
-void sendTelemetryToServer(float soilPct, float tankPct, float distCm, float tempC, float humidityPct, bool relayOn) {
+void sendTelemetryToN8n(float soilPct, float tankPct, float distCm, float tempC, float humidityPct, bool relayOn) {
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("❌ Wi-Fi disconnected! Skipping HTTP send.");
     return;
   }
 
   WiFiClientSecure client;
-  client.setInsecure(); // Bypass SSL verification for HTTPS Vercel API
+  client.setInsecure(); // Bypass SSL certificate validation for n8n HTTPS endpoint
 
   HTTPClient http;
   http.begin(client, SERVER_URL);
   http.addHeader("Content-Type", "application/json");
 
-  // Create JSON Payload (ArduinoJson v7.4.3 syntax)
+  // Create JSON Payload
   JsonDocument doc;
   doc["field_name"]             = "Field A";
   doc["soil_moisture_pct"]     = soilPct;
@@ -140,23 +140,26 @@ void sendTelemetryToServer(float soilPct, float tankPct, float distCm, float tem
   doc["temperature_c"]         = tempC;
   doc["humidity_pct"]          = humidityPct;
   doc["relay_status"]           = relayOn ? "ON" : "OFF";
+  doc["soil_type"]              = "Sandy";
+  doc["crop"]                   = "Tomato";
+  doc["growth_stage"]           = "Flowering";
 
   String jsonPayload;
   serializeJson(doc, jsonPayload);
 
-  Serial.print("Sending POST Telemetry -> ");
+  Serial.print("Sending POST Telemetry to n8n Cloud -> ");
   Serial.println(jsonPayload);
 
   int httpCode = http.POST(jsonPayload);
 
   if (httpCode > 0) {
     String response = http.getString();
-    Serial.print("✅ Server Response (HTTP ");
+    Serial.print("✅ n8n Cloud Response (HTTP ");
     Serial.print(httpCode);
     Serial.print("): ");
     Serial.println(response);
 
-    // Parse Downlink Pump Command from AFOCC Agronomic Engine
+    // Parse Downlink Pump Command from n8n AI Engine
     JsonDocument respDoc;
     DeserializationError err = deserializeJson(respDoc, response);
     if (!err && respDoc.containsKey("pump_command")) {
@@ -203,9 +206,9 @@ void loop() {
 
   bool relayState = (digitalRead(RELAY_PIN) == LOW); // LOW = Relay ACTIVE / ON
 
-  // Send Live Telemetry to AFOCC Command Center
-  sendTelemetryToServer(soilMoisture, tankLevel, distanceCm, tempC, humidityPct, relayState);
+  // Send Live Telemetry to n8n Cloud Webhook
+  sendTelemetryToN8n(soilMoisture, tankLevel, distanceCm, tempC, humidityPct, relayState);
 
-  // Wait 5 seconds before next sensor reading loop
+  // Wait 5 seconds before next sensor loop iteration
   delay(5000);
 }
