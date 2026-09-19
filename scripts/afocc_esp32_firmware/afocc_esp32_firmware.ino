@@ -27,9 +27,9 @@ const char* WIFI_PASSWORD = "Suryaaaa";    // Your Wi-Fi Password
 // Live Direct AFOCC Laptop Telemetry Endpoint (Streams to local server on Wi-Fi)
 const char* SERVER_URL    = "http://10.118.4.9:8000/api/v1/sensors/telemetry";
 
-// --- PIN DEFINITIONS ---
+// --- PIN DEFINITIONS (ESP32-S3 WROOM-1) ---
 #define DHT_PIN           4   // Digital Pin (DHT11/DHT22)
-#define SOIL_MOISTURE_PIN 34  // Analog ADC1 Pin (GPIO 34 - Safe with Wi-Fi!)
+#define SOIL_MOISTURE_PIN 15  // Analog ADC Pin (GPIO 15 - ADC1 on ESP32-S3!)
 #define DHT_TYPE          DHT22 // White sensor = DHT22, Blue sensor = DHT11
 #define ULTRASONIC_TRIG   5   // Digital Output (HC-SR04 Trig)
 #define ULTRASONIC_ECHO   0   // Digital Input (HC-SR04 Echo)
