@@ -1,6 +1,6 @@
 /*
   =================================================================================
-  AFOCC - AI Farm Operations Command Center (n8n Cloud AI Integration)
+  AFOCC - AI Farm Operations Command Center (Direct Local Mode)
   Target Microcontroller: ESP32 Dev Module (NodeMCU ESP-WROOM-32)
   =================================================================================
   
@@ -11,13 +11,12 @@
   - 5V Relay Module (Pump Switch) : IN     -> GPIO 16 (Active LOW)
   
   Wi-Fi Telemetry Target:
-  - Live n8n Cloud Webhook: https://msuryamuthu.app.n8n.cloud/webhook/afocc-telemetry
+  - Direct Local Laptop Server: http://10.118.4.9:8000/api/v1/sensors/telemetry
   =================================================================================
 */
 
 #include <WiFi.h>
 #include <HTTPClient.h>
-#include <WiFiClientSecure.h>
 #include <ArduinoJson.h> // Compatible with ArduinoJson v7.x
 #include <DHT.h>
 
@@ -25,13 +24,13 @@
 const char* WIFI_SSID     = "Surya";        // Your Wi-Fi Name
 const char* WIFI_PASSWORD = "Suryaaaa";    // Your Wi-Fi Password
 
-/// Live Direct AFOCC Laptop Telemetry Endpoint (Streams to local server on Wi-Fi)
+// Live Direct AFOCC Laptop Telemetry Endpoint (Streams to local server on Wi-Fi)
 const char* SERVER_URL    = "http://10.118.4.9:8000/api/v1/sensors/telemetry";
 
 // --- PIN DEFINITIONS ---
 #define DHT_PIN           4   // Digital Pin (DHT11/DHT22)
-#define SOIL_MOISTURE_PIN 15  // Analog ADC Pin (Capacitive Soil Sensor)
-#define DHT_TYPE          DHT11 // Change to DHT22 if using DHT22
+#define SOIL_MOISTURE_PIN 34  // Analog ADC1 Pin (GPIO 34 - Safe with Wi-Fi!)
+#define DHT_TYPE          DHT22 // White sensor = DHT22, Blue sensor = DHT11
 #define ULTRASONIC_TRIG   5   // Digital Output (HC-SR04 Trig)
 #define ULTRASONIC_ECHO   0   // Digital Input (HC-SR04 Echo)
 #define RELAY_PIN         16  // Digital Output (5V Relay Control IN)
@@ -54,8 +53,11 @@ void setup() {
   // Pin Modes
   pinMode(ULTRASONIC_TRIG, OUTPUT);
   pinMode(ULTRASONIC_ECHO, INPUT);
-  pinMode(RELAY_PIN, OUTPUT);
+  pinMode(SOIL_MOISTURE_PIN, INPUT);
+  analogSetPinAttenuation(SOIL_MOISTURE_PIN, ADC_11db); // 0V - 3.3V Full ADC Range
+  analogReadResolution(12); // 12-bit ADC (0 - 4095)
   digitalWrite(RELAY_PIN, HIGH); // Turn Relay OFF initially (Active LOW)
+  pinMode(RELAY_PIN, OUTPUT);
 
   // Initialize DHT Sensor
   dht.begin();
